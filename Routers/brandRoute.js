@@ -10,6 +10,6 @@ import {
 router.post("/brand", createBrand);
 router.get("/brand", getBrands);
 router.delete("/brand/:id", deleteBrand);
-router.delete("/brands/bulk-delete", deleteMultipleBrands);
+router.delete("/brand/bulk-delete", deleteMultipleBrands);
 
 export default router;

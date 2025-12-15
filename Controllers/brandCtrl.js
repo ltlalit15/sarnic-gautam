@@ -26,30 +26,49 @@ export const deleteBrand = async (req, res) => {
 ---------------------------------- */
 export const deleteMultipleBrands = async (req, res) => {
   try {
-    const { ids } = req.body;
+    console.log("RAW req.body:", req.body);
+
+    let { ids } = req.body;
 
     // Validation
     if (!Array.isArray(ids) || ids.length === 0) {
+      console.log("❌ Invalid ids:", ids);
       return res.status(400).json({
         message: "ids array is required"
       });
     }
 
-    // Create placeholders (?, ?, ?)
-    const placeholders = ids.map(() => "?").join(",");
+    console.log("Received IDs:", ids);
 
-    await pool.query(
-      `DELETE FROM brand_names WHERE id IN (${placeholders})`,
-      ids
+    // FORCE NUMBER CONVERSION (VERY IMPORTANT)
+    ids = ids.map(id => Number(id));
+
+    console.log("IDs AFTER Number():", ids);
+    
+    // Correct SQL query syntax using parameterized queries
+    const [result] = await pool.query(
+      `DELETE FROM brand_names WHERE id IN (?)`, // Use a single placeholder
+      [ids] // Pass ids as an array
     );
+
+    console.log("SQL affectedRows:", result.affectedRows);
+
+    if (result.affectedRows === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "No brands deleted (IDs not found or restricted)"
+      });
+    }
 
     res.json({
       success: true,
-      message: "Selected brands deleted successfully"
+      message: "Selected brands deleted successfully",
+      deletedCount: result.affectedRows
     });
   } catch (error) {
-    console.error("Bulk Delete Brand Error:", error);
+    console.error("❌ Bulk Delete Brand Error:", error);
     res.status(500).json({ message: error.message });
   }
 };
+
 
