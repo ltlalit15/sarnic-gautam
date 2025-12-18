@@ -11,9 +11,8 @@ import projectRoutes from "./Routers/project.Routes.js";
 import jobRoutes from "./Routers/jobRoutes.js";
 import companyRoutes from "./Routers/company.routes.js";
 import taxCategoryRoutes from "./Routers/taxCategory.routes.js";
-
-
-
+import costestimateRouter from "./Routers/costestimateRouter.js";
+import purchaseorderRouters from "./Routers/purchaseorderRouters.js";
 
 const router = Router();
 
@@ -29,8 +28,7 @@ router.use("/api/s1", projectRoutes);
 router.use("/api/s1", jobRoutes);
 router.use("/api/s1", companyRoutes);
 router.use("/api/s1", taxCategoryRoutes);
-
-
-
+router.use("/api/s1", costestimateRouter);
+router.use("/api/s1", purchaseorderRouters);
 
 export default router;

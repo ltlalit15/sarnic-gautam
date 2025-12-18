@@ -1,11 +1,16 @@
 import { pool } from "../Config/dbConnect.js";
 
+
+
+
+/* =====================================================
+   CREATE JOB
+===================================================== */
 export const createJob = async (req, res) => {
   try {
     const {
       project_id,
       project_name,
-      project_number,
       brand_id,
       sub_brand_id,
       flavour_id,
@@ -20,50 +25,92 @@ export const createJob = async (req, res) => {
       return res.status(400).json({ message: "project_id is required" });
     }
 
+    // 1️⃣ Get project details
+    const [[project]] = await pool.query(
+      "SELECT project_no, project_name FROM projects WHERE id = ?",
+      [project_id]
+    );
+
+    if (!project) {
+      return res.status(404).json({ message: "Project not found" });
+    }
+
+    const finalProjectName = project_name || project.project_name;
+
+    // 2️⃣ Generate job_no
+    const [[row]] = await pool.query(
+      "SELECT MAX(job_no) AS maxJobNo FROM jobs"
+    );
+
+    const nextJobNo = (row.maxJobNo || 18542) + 1;
+
+    // 3️⃣ Insert job (job_status = Active)
     const [result] = await pool.query(
-      `INSERT INTO jobs
-      (project_id, project_name, project_number,
-       brand_id, sub_brand_id, flavour_id,
-       pack_type_id, pack_code_id, pack_size,
-       priority, ean_barcode)
-      VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
-      [
+      `INSERT INTO jobs (
+        job_no,
         project_id,
-        project_name || null,
-        project_number || null,
+        project_name,
+        brand_id,
+        sub_brand_id,
+        flavour_id,
+        pack_type_id,
+        pack_code_id,
+        pack_size,
+        priority,
+        ean_barcode,
+        job_status
+      ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
+      [
+        nextJobNo,
+        project_id,
+        finalProjectName,
         brand_id || null,
         sub_brand_id || null,
         flavour_id || null,
         pack_type_id || null,
         pack_code_id || null,
         pack_size || null,
-        priority || "medium",
-        ean_barcode || null
+        priority ? priority.toLowerCase() : "medium",
+        ean_barcode || null,
+        "Active"
       ]
     );
 
-    res.json({
+    res.status(201).json({
       success: true,
       message: "Job created successfully",
-      id: result.insertId
+      job_id: result.insertId,
+      job_no: nextJobNo,
+      project_no: project.project_no,
+      project_name: finalProjectName,
+      job_status: "Active"
     });
+
   } catch (error) {
+    console.error("Create Job Error:", error);
     res.status(500).json({ message: error.message });
   }
 };
 
 
+
+/* =====================================================
+   GET ALL JOBS
+===================================================== */
 export const getAllJobs = async (req, res) => {
   try {
     const [rows] = await pool.query(`
       SELECT
         j.*,
+        p.project_no,
+        p.project_name AS main_project_name,
         b.name AS brand_name,
         sb.name AS sub_brand_name,
         f.name AS flavour_name,
         pt.name AS pack_type_name,
         pc.name AS pack_code_name
       FROM jobs j
+      LEFT JOIN projects p ON j.project_id = p.id
       LEFT JOIN brand_names b ON j.brand_id = b.id
       LEFT JOIN sub_brands sb ON j.sub_brand_id = sb.id
       LEFT JOIN flavours f ON j.flavour_id = f.id
@@ -74,11 +121,15 @@ export const getAllJobs = async (req, res) => {
 
     res.json({ success: true, data: rows });
   } catch (error) {
+    console.error("Get Jobs Error:", error);
     res.status(500).json({ message: error.message });
   }
 };
 
 
+/* =====================================================
+   GET JOB BY ID
+===================================================== */
 export const getJobById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -86,12 +137,15 @@ export const getJobById = async (req, res) => {
     const [[job]] = await pool.query(`
       SELECT
         j.*,
+        p.project_no,
+        p.project_name AS main_project_name,
         b.name AS brand_name,
         sb.name AS sub_brand_name,
         f.name AS flavour_name,
         pt.name AS pack_type_name,
         pc.name AS pack_code_name
       FROM jobs j
+      LEFT JOIN projects p ON j.project_id = p.id
       LEFT JOIN brand_names b ON j.brand_id = b.id
       LEFT JOIN sub_brands sb ON j.sub_brand_id = sb.id
       LEFT JOIN flavours f ON j.flavour_id = f.id
@@ -111,6 +165,9 @@ export const getJobById = async (req, res) => {
 };
 
 
+/* =====================================================
+   GET JOBS BY PROJECT ID
+===================================================== */
 export const getJobsByProjectId = async (req, res) => {
   try {
     const { projectId } = req.params;
@@ -118,12 +175,15 @@ export const getJobsByProjectId = async (req, res) => {
     const [rows] = await pool.query(`
       SELECT
         j.*,
+        p.project_no,
+        p.project_name AS main_project_name,
         b.name AS brand_name,
         sb.name AS sub_brand_name,
         f.name AS flavour_name,
         pt.name AS pack_type_name,
         pc.name AS pack_code_name
       FROM jobs j
+      LEFT JOIN projects p ON j.project_id = p.id
       LEFT JOIN brand_names b ON j.brand_id = b.id
       LEFT JOIN sub_brands sb ON j.sub_brand_id = sb.id
       LEFT JOIN flavours f ON j.flavour_id = f.id
@@ -140,6 +200,9 @@ export const getJobsByProjectId = async (req, res) => {
 };
 
 
+/* =====================================================
+   UPDATE JOB
+===================================================== */
 export const updateJob = async (req, res) => {
   try {
     const { id } = req.params;
@@ -152,29 +215,32 @@ export const updateJob = async (req, res) => {
       pack_code_id,
       pack_size,
       priority,
-      ean_barcode
+      ean_barcode,
+      job_status
     } = req.body;
 
     await pool.query(
       `UPDATE jobs SET
-        brand_id=?,
-        sub_brand_id=?,
-        flavour_id=?,
-        pack_type_id=?,
-        pack_code_id=?,
-        pack_size=?,
-        priority=?,
-        ean_barcode=?
-      WHERE id=?`,
+        brand_id = ?,
+        sub_brand_id = ?,
+        flavour_id = ?,
+        pack_type_id = ?,
+        pack_code_id = ?,
+        pack_size = ?,
+        priority = ?,
+        ean_barcode = ?,
+        job_status = ?
+      WHERE id = ?`,
       [
-        brand_id,
-        sub_brand_id,
-        flavour_id,
-        pack_type_id,
-        pack_code_id,
-        pack_size,
-        priority,
-        ean_barcode,
+        brand_id || null,
+        sub_brand_id || null,
+        flavour_id || null,
+        pack_type_id || null,
+        pack_code_id || null,
+        pack_size || null,
+        priority ? priority.toLowerCase() : "medium",
+        ean_barcode || null,
+        job_status || "Active",
         id
       ]
     );
@@ -186,11 +252,15 @@ export const updateJob = async (req, res) => {
 };
 
 
+
+/* =====================================================
+   DELETE JOB
+===================================================== */
 export const deleteJob = async (req, res) => {
   try {
     const { id } = req.params;
 
-    await pool.query("DELETE FROM jobs WHERE id=?", [id]);
+    await pool.query("DELETE FROM jobs WHERE id = ?", [id]);
 
     res.json({ success: true, message: "Job deleted successfully" });
   } catch (error) {

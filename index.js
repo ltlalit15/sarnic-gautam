@@ -14,10 +14,6 @@ import "./cron/dailyEmailSender.js";
 dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3001;
-
-// -----------------------------------------------------
-// ICS PROXY (UNCHANGED)
-// -----------------------------------------------------
 app.get("/api/ics-proxy", async (req, res) => {
   try {
     const { url } = req.query;
@@ -32,13 +28,6 @@ app.get("/api/ics-proxy", async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
-
-// -----------------------------------------------------
-// MIDDLEWARES
-// -----------------------------------------------------
-
-// app.use(cors({ origin: "*", credentials: true }));
-
 app.use(
   cors({
     origin: "http://localhost:5173",
@@ -47,15 +36,10 @@ app.use(
     allowedHeaders: ["Content-Type", "Authorization"]
   })
 );
-
 app.use(morgan("dev"));
 app.use(cookieParser());
-
-// ✅ REQUIRED FOR req.body (JSON)
 app.use(bodyParser.json({ limit: "50mb" }));
 app.use(bodyParser.urlencoded({ limit: "50mb", extended: true }));
-
-// ✅ REQUIRED FOR req.files (Cloudinary)
 app.use(
   fileUpload({
     useTempFiles: true,
@@ -63,15 +47,7 @@ app.use(
     createParentPath: true,
   })
 );
-
-// -----------------------------------------------------
-// ROUTES
-// -----------------------------------------------------
 app.use(routes);
-
-// -----------------------------------------------------
-// SERVER
-// -----------------------------------------------------
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
