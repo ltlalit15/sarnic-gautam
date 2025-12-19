@@ -1,4 +1,5 @@
 import { pool } from "../Config/dbConnect.js";
+
 export const addempoyee = async (req, res) => {
     try {
         const { username, email, password } = req.body

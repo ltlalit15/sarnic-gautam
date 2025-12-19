@@ -19,8 +19,6 @@ export const deleteFlavour = async (req, res) => {
   res.json({ success: true });
 };
 
-
-
 export const deleteMultipleFlavours = async (req, res) => {
   try {
     const { ids } = req.body;
@@ -30,9 +28,7 @@ export const deleteMultipleFlavours = async (req, res) => {
         message: "ids array is required"
       });
     }
-
     const placeholders = ids.map(() => "?").join(",");
-
     await pool.query(
       `DELETE FROM flavours WHERE id IN (${placeholders})`,
       ids

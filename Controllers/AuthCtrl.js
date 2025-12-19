@@ -216,34 +216,6 @@ export const deleteUser = async (req, res) => {
     }
 };
 
-// export const changePassword = async (req, res) => {
-//     try {
-//         const { id } = req.params;
-//         const { oldPassword, newPassword } = req.body;
-//         const [rows] = await pool.query(
-//             "SELECT password FROM users WHERE id=?",
-//             [id]
-//         );
-//         if (rows.length === 0) {
-//             return res.status(404).json({ message: "User not found" });
-//         }
-//         const match = await bcrypt.compare(oldPassword, rows[0].password);
-//         if (!match) {
-//             return res.status(403).json({ message: "Old password incorrect" });
-//         }
-//         const hash = await bcrypt.hash(newPassword, 10);
-//         await pool.query(
-//             "UPDATE users SET password=? WHERE id=?",
-//             [hash, id]
-//         );
-//         res.status(200).json({ message: "Password changed successfully" });
-//     } catch (error) {
-//         res.status(500).json({ message: error.message });
-//     }
-// };
-
-
-
 export const changePassword = async (req, res) => {
   try {
     const { id } = req.params;
@@ -282,8 +254,6 @@ export const changePassword = async (req, res) => {
   }
 };
 
-
-
 export const getProductionUsers = async (req, res) => {
   try {
     const [rows] = await pool.query(
@@ -301,7 +271,6 @@ export const getProductionUsers = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-
 
 export const getEmployeeUsers = async (req, res) => {
   try {

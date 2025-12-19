@@ -19,47 +19,30 @@ export const deleteBrand = async (req, res) => {
   res.json({ success: true, message: "Brand deleted" });
 };
 
-
-
-/* ----------------------------------
-   DELETE MULTIPLE BRANDS
----------------------------------- */
 export const deleteMultipleBrands = async (req, res) => {
   try {
     console.log("RAW req.body:", req.body);
-
     let { ids } = req.body;
-
-    // Validation
     if (!Array.isArray(ids) || ids.length === 0) {
       console.log("❌ Invalid ids:", ids);
       return res.status(400).json({
         message: "ids array is required"
       });
     }
-
     console.log("Received IDs:", ids);
-
-    // FORCE NUMBER CONVERSION (VERY IMPORTANT)
     ids = ids.map(id => Number(id));
-
     console.log("IDs AFTER Number():", ids);
-    
-    // Correct SQL query syntax using parameterized queries
-    const [result] = await pool.query(
+        const [result] = await pool.query(
       `DELETE FROM brand_names WHERE id IN (?)`, // Use a single placeholder
       [ids] // Pass ids as an array
     );
-
     console.log("SQL affectedRows:", result.affectedRows);
-
     if (result.affectedRows === 0) {
       return res.status(400).json({
         success: false,
         message: "No brands deleted (IDs not found or restricted)"
       });
     }
-
     res.json({
       success: true,
       message: "Selected brands deleted successfully",

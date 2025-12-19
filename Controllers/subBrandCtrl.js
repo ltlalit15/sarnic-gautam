@@ -18,8 +18,6 @@ export const deleteSubBrand = async (req, res) => {
   res.json({ success: true });
 };
 
-
-
 export const deleteMultipleSubBrands = async (req, res) => {
   try {
     const { ids } = req.body;

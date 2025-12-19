@@ -1,5 +1,6 @@
 
 import { pool } from "../Config/dbConnect.js";
+
 export const createPackCode = async (req, res) => {
   const [r] = await pool.query(
     "INSERT INTO pack_codes (name) VALUES (?)",
@@ -17,8 +18,6 @@ export const deletePackCode = async (req, res) => {
   await pool.query("DELETE FROM pack_codes WHERE id=?", [req.params.id]);
   res.json({ success: true });
 };
-
-
 
 export const deleteMultiplePackCodes = async (req, res) => {
   try {

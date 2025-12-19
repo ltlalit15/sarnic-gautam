@@ -1,8 +1,5 @@
 import { pool } from "../Config/dbConnect.js";
 
-/* ======================================
-   AMOUNT PARSER
-====================================== */
 export const parseAmountByCurrency = (amount, currency) => {
   if (!amount) return 0;
 
@@ -35,35 +32,31 @@ export const parseAmountByCurrency = (amount, currency) => {
   return value;
 };
 
-/* ======================================
-   STATUS LOGIC (COMMON)
-====================================== */
+
+
 const calculateInvoiceFlags = (ce_po_status, ce_invoice_status) => {
-  let to_be_invoiced = false;
-  let invoice = false;
-  let invoiced = false;
+  let to_be_invoiced = 0;
+  let invoice = 0;
+  let invoiced = 0;
 
   const poStatus = ce_po_status || "pending";
   const invoiceStatus = ce_invoice_status || "pending";
 
   if (poStatus === "pending" && invoiceStatus === "pending") {
-    to_be_invoiced = true;
+    to_be_invoiced = 1;
   }
 
   if (poStatus === "received" && invoiceStatus === "pending") {
-    invoice = true;
+    invoice = 1;
   }
 
   if (poStatus === "received" && invoiceStatus === "received") {
-    invoiced = true;
+    invoiced = 1;
   }
 
   return { to_be_invoiced, invoice, invoiced };
 };
 
-/* ======================================
-   CREATE ESTIMATE
-====================================== */
 export const createEstimate = async (req, res) => {
   try {
     const {
@@ -156,9 +149,61 @@ export const createEstimate = async (req, res) => {
   }
 };
 
-/* ======================================
-   GET ESTIMATES BY PROJECT
-====================================== */
+
+
+// export const getEstimatesByProjectId = async (req, res) => {
+//   try {
+//     const { projectId } = req.params;
+
+//     const [rows] = await pool.query(`
+//       SELECT 
+//         e.*,
+
+//         /* Project details */
+//         p.project_name,
+//         p.project_no,
+
+//         /* Client details */
+//         cs.name AS client_name
+
+//       FROM estimates e
+
+//       LEFT JOIN projects p 
+//         ON p.id = e.project_id
+
+//       LEFT JOIN clients_suppliers cs 
+//         ON cs.id = e.client_id 
+//         AND cs.type = 'client'
+
+//       WHERE e.project_id = ?
+//       ORDER BY e.id DESC
+//     `, [projectId]);
+
+//     const data = rows.map(row => {
+//       const flags = calculateInvoiceFlags(
+//         row.ce_po_status,
+//         row.ce_invoice_status
+//       );
+
+//       return {
+//         ...row,
+//         ...flags, // 👈 override flags exactly like getAllEstimates
+//         line_items: row.line_items ? JSON.parse(row.line_items) : []
+//       };
+//     });
+
+//     res.json({
+//       success: true,
+//       count: data.length,
+//       data
+//     });
+
+//   } catch (error) {
+//     res.status(500).json({ message: error.message });
+//   }
+// };
+
+
 export const getEstimatesByProjectId = async (req, res) => {
   try {
     const { projectId } = req.params;
@@ -166,31 +211,36 @@ export const getEstimatesByProjectId = async (req, res) => {
     const [rows] = await pool.query(`
       SELECT 
         e.*,
-
-        /* Project details */
         p.project_name,
         p.project_no,
-
-        /* Client details */
         cs.name AS client_name
-
       FROM estimates e
-
-      LEFT JOIN projects p 
-        ON p.id = e.project_id
-
+      LEFT JOIN projects p ON p.id = e.project_id
       LEFT JOIN clients_suppliers cs 
-        ON cs.id = e.client_id 
-        AND cs.type = 'client'
-
+        ON cs.id = e.client_id AND cs.type = 'client'
       WHERE e.project_id = ?
       ORDER BY e.id DESC
     `, [projectId]);
 
-    const data = rows.map(row => ({
-      ...row,
-      line_items: row.line_items ? JSON.parse(row.line_items) : []
-    }));
+    const data = rows.map(row => {
+      const flags = calculateInvoiceFlags(
+        row.ce_po_status,
+        row.ce_invoice_status
+      );
+
+      // 🔥 SAME STATUS LOGIC
+      const computedStatus =
+        row.ce_invoice_status === "received"
+          ? "Inactive"
+          : "Draft";
+
+      return {
+        ...row,
+        ce_status: computedStatus,
+        ...flags,
+        line_items: row.line_items ? JSON.parse(row.line_items) : []
+      };
+    });
 
     res.json({
       success: true,
@@ -204,40 +254,83 @@ export const getEstimatesByProjectId = async (req, res) => {
 };
 
 
-/* ======================================
-   GET ALL ESTIMATES
-====================================== */
+
+// export const getAllEstimates = async (req, res) => {
+//   try {
+//     const [rows] = await pool.query(`
+//       SELECT 
+//         e.*,
+//         p.project_name,
+//         p.project_no,
+//         cs.name AS client_name
+//       FROM estimates e
+//       LEFT JOIN projects p ON p.id = e.project_id
+//       LEFT JOIN clients_suppliers cs 
+//         ON cs.id = e.client_id AND cs.type = 'client'
+//       ORDER BY e.id DESC
+//     `);
+
+//     const data = rows.map(row => {
+//       const flags = calculateInvoiceFlags(
+//         row.ce_po_status,
+//         row.ce_invoice_status
+//       );
+
+//       return {
+//         ...row,
+//         ...flags, // 👈 override flags here
+//         line_items: row.line_items ? JSON.parse(row.line_items) : []
+//       };
+//     });
+
+//     res.json({
+//       success: true,
+//       count: data.length,
+//       data
+//     });
+
+//   } catch (error) {
+//     console.error("Get All Estimates Error:", error);
+//     res.status(500).json({ message: error.message });
+//   }
+// };
+
+
+
 export const getAllEstimates = async (req, res) => {
   try {
     const [rows] = await pool.query(`
       SELECT 
         e.*,
-
-        /* Project details */
         p.project_name,
         p.project_no,
-
-        /* Client details */
         cs.name AS client_name
-
       FROM estimates e
-
-      /* Join projects */
-      LEFT JOIN projects p 
-        ON p.id = e.project_id
-
-      /* Join clients_suppliers (ONLY CLIENT TYPE) */
+      LEFT JOIN projects p ON p.id = e.project_id
       LEFT JOIN clients_suppliers cs 
-        ON cs.id = e.client_id 
-        AND cs.type = 'client'
-
+        ON cs.id = e.client_id AND cs.type = 'client'
       ORDER BY e.id DESC
     `);
 
-    const data = rows.map(row => ({
-      ...row,
-      line_items: row.line_items ? JSON.parse(row.line_items) : []
-    }));
+    const data = rows.map(row => {
+      const flags = calculateInvoiceFlags(
+        row.ce_po_status,
+        row.ce_invoice_status
+      );
+
+      // 🔥 STATUS OVERRIDE (GET LEVEL ONLY)
+      const computedStatus =
+        row.ce_invoice_status === "received"
+          ? "Inactive"
+          : "Draft";
+
+      return {
+        ...row,
+        ce_status: computedStatus,   // 👈 override here
+        ...flags,
+        line_items: row.line_items ? JSON.parse(row.line_items) : []
+      };
+    });
 
     res.json({
       success: true,
@@ -252,9 +345,11 @@ export const getAllEstimates = async (req, res) => {
 };
 
 
-/* ======================================
-   GET ESTIMATE BY ID
-====================================== */
+
+
+
+
+
 export const getEstimateById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -298,10 +393,6 @@ export const getEstimateById = async (req, res) => {
   }
 };
 
-
-/* ======================================
-   UPDATE ESTIMATE
-====================================== */
 export const updateEstimate = async (req, res) => {
   try {
     const { id } = req.params;
@@ -374,9 +465,6 @@ export const updateEstimate = async (req, res) => {
   }
 };
 
-/* ======================================
-   DELETE ESTIMATE
-====================================== */
 export const deleteEstimate = async (req, res) => {
   try {
     const { id } = req.params;

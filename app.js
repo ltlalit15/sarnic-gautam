@@ -13,6 +13,8 @@ import companyRoutes from "./Routers/company.routes.js";
 import taxCategoryRoutes from "./Routers/taxCategory.routes.js";
 import costestimateRouter from "./Routers/costestimateRouter.js";
 import purchaseorderRouters from "./Routers/purchaseorderRouters.js";
+import assignJobRoutes from "./Routers/assignJobRoutes.js";
+import invoiceRoutes from "./Routers/invoiceRoutes.js";
 
 const router = Router();
 
@@ -30,5 +32,7 @@ router.use("/api/s1", companyRoutes);
 router.use("/api/s1", taxCategoryRoutes);
 router.use("/api/s1", costestimateRouter);
 router.use("/api/s1", purchaseorderRouters);
+router.use("/api/s1", assignJobRoutes);
+router.use("/api/s1", invoiceRoutes);
 
 export default router;

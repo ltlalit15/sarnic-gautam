@@ -18,8 +18,6 @@ export const deletePackType = async (req, res) => {
   res.json({ success: true });
 };
 
-
-
 export const deleteMultiplePackTypes = async (req, res) => {
   try {
     const { ids } = req.body;

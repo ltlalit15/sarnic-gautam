@@ -54,14 +54,11 @@ export const createClientSupplier = async (req, res) => {
   }
 };
 
-
 export const getAllClientSuppliers = async (req, res) => {
   try {
     const [rows] = await pool.query(
       "SELECT * FROM clients_suppliers ORDER BY id DESC"
     );
-
-    // JSON parse for frontend
     const data = rows.map(r => ({
       ...r,
       contact_persons: r.contact_persons
@@ -74,7 +71,6 @@ export const getAllClientSuppliers = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
-
 
 export const getClientSupplierById = async (req, res) => {
   try {
@@ -145,7 +141,6 @@ export const updateClientSupplier = async (req, res) => {
   }
 };
 
-
 export const deleteClientSupplier = async (req, res) => {
   try {
     const { id } = req.params;
@@ -160,7 +155,6 @@ export const deleteClientSupplier = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
-
 
 export const getClientsOnly = async (req, res) => {
   try {
@@ -180,7 +174,6 @@ export const getClientsOnly = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
-
 
 export const getSuppliersOnly = async (req, res) => {
   try {

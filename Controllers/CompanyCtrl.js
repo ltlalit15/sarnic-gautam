@@ -74,7 +74,6 @@ export const createCompany = async (req, res) => {
   }
 };
 
-
 export const getCompanyById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -98,7 +97,6 @@ export const getCompanyById = async (req, res) => {
   }
 };
 
-
 export const deleteCompany = async (req, res) => {
   try {
     const { id } = req.params;
@@ -113,7 +111,6 @@ export const deleteCompany = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-
 
 export const updateCompany = async (req, res) => {
   try {

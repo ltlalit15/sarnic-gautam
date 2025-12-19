@@ -1,11 +1,5 @@
 import { pool } from "../Config/dbConnect.js";
 
-
-
-
-/* =====================================================
-   CREATE JOB
-===================================================== */
 export const createJob = async (req, res) => {
   try {
     const {
@@ -92,11 +86,6 @@ export const createJob = async (req, res) => {
   }
 };
 
-
-
-/* =====================================================
-   GET ALL JOBS
-===================================================== */
 export const getAllJobs = async (req, res) => {
   try {
     const [rows] = await pool.query(`
@@ -126,10 +115,6 @@ export const getAllJobs = async (req, res) => {
   }
 };
 
-
-/* =====================================================
-   GET JOB BY ID
-===================================================== */
 export const getJobById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -164,10 +149,6 @@ export const getJobById = async (req, res) => {
   }
 };
 
-
-/* =====================================================
-   GET JOBS BY PROJECT ID
-===================================================== */
 export const getJobsByProjectId = async (req, res) => {
   try {
     const { projectId } = req.params;
@@ -199,10 +180,6 @@ export const getJobsByProjectId = async (req, res) => {
   }
 };
 
-
-/* =====================================================
-   UPDATE JOB
-===================================================== */
 export const updateJob = async (req, res) => {
   try {
     const { id } = req.params;
@@ -251,11 +228,6 @@ export const updateJob = async (req, res) => {
   }
 };
 
-
-
-/* =====================================================
-   DELETE JOB
-===================================================== */
 export const deleteJob = async (req, res) => {
   try {
     const { id } = req.params;

@@ -1,6 +1,5 @@
 import { pool } from "../Config/dbConnect.js";
 
-
 export const createIndustry = async (req, res) => {
   const [r] = await pool.query(
     "INSERT INTO industries (name) VALUES (?)",
@@ -18,8 +17,6 @@ export const deleteIndustry = async (req, res) => {
   await pool.query("DELETE FROM industries WHERE id=?", [req.params.id]);
   res.json({ success: true });
 };
-
-
 
 export const deleteMultipleIndustries = async (req, res) => {
   try {

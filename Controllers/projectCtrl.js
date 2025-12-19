@@ -1,9 +1,5 @@
 import { pool } from "../Config/dbConnect.js";
 
-/* =========================================
-   🔹 Helper: Currency-wise Budget Parser
-   DB me hamesha plain number store hoga
-========================================= */
 const parseBudget = (budget, currency) => {
   if (!budget) return null;
 
@@ -35,9 +31,6 @@ const parseBudget = (budget, currency) => {
   return amount;
 };
 
-/* =========================================
-   ✅ CREATE PROJECT
-========================================= */
 export const createProject = async (req, res) => {
   try {
     const {
@@ -103,9 +96,6 @@ export const createProject = async (req, res) => {
   }
 };
 
-/* =========================================
-   ✅ GET ALL PROJECTS
-========================================= */
 export const getAllProjects = async (req, res) => {
   try {
     const [rows] = await pool.query(
@@ -125,9 +115,6 @@ export const getAllProjects = async (req, res) => {
   }
 };
 
-/* =========================================
-   ✅ GET PROJECT BY ID
-========================================= */
 export const getProjectById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -151,9 +138,6 @@ export const getProjectById = async (req, res) => {
   }
 };
 
-/* =========================================
-   ✅ UPDATE PROJECT
-========================================= */
 export const updateProject = async (req, res) => {
   try {
     const { id } = req.params;
@@ -212,9 +196,6 @@ export const updateProject = async (req, res) => {
   }
 };
 
-/* =========================================
-   ✅ DELETE PROJECT
-========================================= */
 export const deleteProject = async (req, res) => {
   try {
     const { id } = req.params;
@@ -233,9 +214,6 @@ export const deleteProject = async (req, res) => {
   }
 };
 
-/* =========================================
-   ✅ GET PROJECTS BY STATUS
-========================================= */
 export const getProjectsByStatus = async (req, res) => {
   try {
     const { status } = req.params;

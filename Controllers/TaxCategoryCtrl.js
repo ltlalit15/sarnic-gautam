@@ -1,8 +1,5 @@
 import { pool } from "../Config/dbConnect.js";
 
-/* ----------------------------------
-   CREATE TAX CATEGORY
----------------------------------- */
 export const createTaxCategory = async (req, res) => {
   try {
     const { category_name, tax_rate } = req.body;
@@ -29,9 +26,6 @@ export const createTaxCategory = async (req, res) => {
   }
 };
 
-/* ----------------------------------
-   GET ALL TAX CATEGORIES
----------------------------------- */
 export const getAllTaxCategories = async (req, res) => {
   try {
     const [rows] = await pool.query(
@@ -47,9 +41,6 @@ export const getAllTaxCategories = async (req, res) => {
   }
 };
 
-/* ----------------------------------
-   GET TAX CATEGORY BY ID
----------------------------------- */
 export const getTaxCategoryById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -72,9 +63,6 @@ export const getTaxCategoryById = async (req, res) => {
   }
 };
 
-/* ----------------------------------
-   DELETE TAX CATEGORY
----------------------------------- */
 export const deleteTaxCategory = async (req, res) => {
   try {
     const { id } = req.params;
