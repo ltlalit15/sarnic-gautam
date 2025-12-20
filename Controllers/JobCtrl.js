@@ -149,6 +149,39 @@ export const getJobById = async (req, res) => {
   }
 };
 
+// export const getJobsByProjectId = async (req, res) => {
+//   try {
+//     const { projectId } = req.params;
+
+//     const [rows] = await pool.query(`
+//       SELECT
+//         j.*,
+//         p.project_no,
+//         p.project_name AS main_project_name,
+//         b.name AS brand_name,
+//         sb.name AS sub_brand_name,
+//         f.name AS flavour_name,
+//         pt.name AS pack_type_name,
+//         pc.name AS pack_code_name
+//       FROM jobs j
+//       LEFT JOIN projects p ON j.project_id = p.id
+//       LEFT JOIN brand_names b ON j.brand_id = b.id
+//       LEFT JOIN sub_brands sb ON j.sub_brand_id = sb.id
+//       LEFT JOIN flavours f ON j.flavour_id = f.id
+//       LEFT JOIN pack_types pt ON j.pack_type_id = pt.id
+//       LEFT JOIN pack_codes pc ON j.pack_code_id = pc.id
+//       WHERE j.project_id = ?
+//       ORDER BY j.id DESC
+//     `, [projectId]);
+
+//     res.json({ success: true, data: rows });
+//   } catch (error) {
+//     res.status(500).json({ message: error.message });
+//   }
+// };
+
+
+
 export const getJobsByProjectId = async (req, res) => {
   try {
     const { projectId } = req.params;
@@ -162,7 +195,13 @@ export const getJobsByProjectId = async (req, res) => {
         sb.name AS sub_brand_name,
         f.name AS flavour_name,
         pt.name AS pack_type_name,
-        pc.name AS pack_code_name
+        pc.name AS pack_code_name,
+
+        -- Assigned user details
+        u.id AS assigned_user_id,
+        CONCAT(u.first_name, ' ', u.last_name) AS assigned_name,
+        u.role_name AS assigned_role
+
       FROM jobs j
       LEFT JOIN projects p ON j.project_id = p.id
       LEFT JOIN brand_names b ON j.brand_id = b.id
@@ -170,15 +209,19 @@ export const getJobsByProjectId = async (req, res) => {
       LEFT JOIN flavours f ON j.flavour_id = f.id
       LEFT JOIN pack_types pt ON j.pack_type_id = pt.id
       LEFT JOIN pack_codes pc ON j.pack_code_id = pc.id
+      LEFT JOIN users u ON u.id = j.assigned
+
       WHERE j.project_id = ?
       ORDER BY j.id DESC
     `, [projectId]);
 
     res.json({ success: true, data: rows });
+
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
+
 
 export const updateJob = async (req, res) => {
   try {
