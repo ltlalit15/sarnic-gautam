@@ -313,6 +313,41 @@ export const getProjectOverviewById = async (req, res) => {
       [projectId]
     );
 
+
+//     const [recentJobs] = await pool.query(
+//   `
+//   SELECT
+//     CASE
+//       WHEN job_status = 'Active' THEN 'Job in progress'
+//       WHEN job_status = 'Completed' THEN 'Job completed'
+//       ELSE 'Job updated'
+//     END AS activity,
+//     created_at
+//   FROM jobs
+//   WHERE project_id = ?
+//   ORDER BY created_at DESC
+//   LIMIT 2
+//   `,
+//   [projectId]
+// );
+
+// const [recentPOs] = await pool.query(
+//   `
+//   SELECT
+//     CASE
+//       WHEN po_status = 'Draft' THEN 'Purchase order drafted'
+//       WHEN po_status = 'Issued' THEN 'Purchase order issued'
+//       ELSE 'Purchase order updated'
+//     END AS activity,
+//     created_at
+//   FROM purchase_orders
+//   WHERE project_id = ?
+//   ORDER BY created_at DESC
+//   LIMIT 1
+//   `,
+//   [projectId]
+// );
+
     const recentActivity = [...recentJobs, ...recentPOs]
       .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
       .slice(0, 3)
