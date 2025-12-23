@@ -16,7 +16,7 @@ router.post("/jobs", createJob);
 router.get("/jobs", getAllJobs);
 router.get("/jobs/:id", getJobById);
 router.get("/jobs/project/:projectId", getJobsByProjectId);
-router.get("/jobs/jobhistory/:employeeId",getJobHistoryByEmployeeId);
+router.get("/jobs/jobhistoryemployee/:employeeId",getJobHistoryByEmployeeId);
 router.get("/jobs/jobHistoryproduction/:productionId",getJobHistoryByProductionId)
 router.put("/jobs/:id", updateJob);
 router.delete("/jobs/:id", deleteJob);
