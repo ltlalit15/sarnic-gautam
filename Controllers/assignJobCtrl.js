@@ -230,8 +230,8 @@ const connection = await pool.getConnection();
       UPDATE assign_jobs
       SET 
         production_status = 'complete',
-        admin_status = 'complete',
-        production_id = NULL
+        admin_status = 'complete'
+        
       WHERE id = ?
       `,
       [req.params.id]
@@ -338,8 +338,7 @@ export const productionReturnJob = async (req, res) => {
       UPDATE assign_jobs
       SET 
         production_status = 'return',
-        admin_status = 'return',
-        production_id = NULL
+        admin_status = 'return'
       WHERE id IN (${placeholders})
       `,
       assignIds
@@ -446,8 +445,7 @@ export const productionRejectJob = async (req, res) => {
       UPDATE assign_jobs
       SET 
         production_status = 'reject',
-        admin_status = 'reject',
-        production_id = NULL
+        admin_status = 'reject'
       WHERE id IN (${placeholders})
       `,
       assignIds
@@ -680,4 +678,253 @@ export const getJobsByProduction = async (req, res) => {
 export const deleteAssignJob = async (req, res) => {
   await pool.query(`DELETE FROM assign_jobs WHERE id = ?`, [req.params.id]);
   res.json({ success: true });
+};
+
+export const getInProgressJobsByProduction = async (req, res) => {
+  try {
+    const productionId = req.params.production_id;
+
+    const [rows] = await pool.query(
+      `
+      SELECT
+        j.job_no,
+        j.job_status AS status,
+        j.priority,
+        j.pack_size,
+
+        -- project
+        p.project_name,
+        p.project_no,
+      
+
+        -- brand hierarchy
+        b.name  AS brand,
+        sb.name AS sub_brand,
+        f.name  AS flavour,
+
+        -- pack
+        pt.name AS pack_type,
+        pc.name AS pack_code,
+
+        -- assign job
+        aj.time_budget AS total_time,
+
+        -- production user
+        CONCAT(u.first_name, ' ', u.last_name) AS assigned_to
+
+      FROM assign_jobs aj
+
+      JOIN jobs j
+        ON JSON_CONTAINS(aj.job_ids, JSON_ARRAY(j.id))
+
+      JOIN projects p
+        ON j.project_id = p.id
+
+      LEFT JOIN brand_names b
+        ON j.brand_id = b.id
+
+      LEFT JOIN sub_brands sb
+        ON j.sub_brand_id = sb.id
+
+      LEFT JOIN flavours f
+        ON j.flavour_id = f.id
+
+      LEFT JOIN pack_types pt
+        ON j.pack_type_id = pt.id
+
+      LEFT JOIN pack_codes pc
+        ON j.pack_code_id = pc.id
+
+      LEFT JOIN users u
+        ON aj.production_id = u.id
+
+      WHERE 
+        aj.production_id = ?
+        AND j.job_status = 'in_progress'
+
+      ORDER BY p.expected_completion_date ASC
+      `,
+      [productionId]
+    );
+    /*p.expected_completion_date AS due_date, */
+
+    res.json({
+      success: true,
+      count: rows.length,
+      data: rows
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: "Server Error"
+    });
+  }
+};
+
+export const getCompleteJobsByProduction = async (req, res) => {
+  try {
+    const productionId = req.params.production_id;
+
+    const [rows] = await pool.query(
+      `
+      SELECT
+        j.job_no,
+        j.job_status AS status,
+        j.priority,
+        j.pack_size,
+
+        -- project
+        p.project_name,
+        p.project_no,
+      
+
+        -- brand hierarchy
+        b.name  AS brand,
+        sb.name AS sub_brand,
+        f.name  AS flavour,
+
+        -- pack
+        pt.name AS pack_type,
+        pc.name AS pack_code,
+
+        -- assign job
+        aj.time_budget AS total_time,
+
+        -- production user
+        CONCAT(u.first_name, ' ', u.last_name) AS assigned_to
+
+      FROM assign_jobs aj
+
+      JOIN jobs j
+        ON JSON_CONTAINS(aj.job_ids, JSON_ARRAY(j.id))
+
+      JOIN projects p
+        ON j.project_id = p.id
+
+      LEFT JOIN brand_names b
+        ON j.brand_id = b.id
+
+      LEFT JOIN sub_brands sb
+        ON j.sub_brand_id = sb.id
+
+      LEFT JOIN flavours f
+        ON j.flavour_id = f.id
+
+      LEFT JOIN pack_types pt
+        ON j.pack_type_id = pt.id
+
+      LEFT JOIN pack_codes pc
+        ON j.pack_code_id = pc.id
+
+      LEFT JOIN users u
+        ON aj.production_id = u.id
+
+      WHERE 
+        aj.production_id = ?
+        AND j.job_status = 'complete'
+
+      ORDER BY p.expected_completion_date ASC
+      `,
+      [productionId]
+    );
+    /*p.expected_completion_date AS due_date, */
+
+    res.json({
+      success: true,
+      count: rows.length,
+      data: rows
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: "Server Error"
+    });
+  }
+};
+
+export const getRejectJobsByProduction = async (req, res) => {
+  try {
+    const productionId = req.params.production_id;
+
+    const [rows] = await pool.query(
+      `
+      SELECT
+        j.job_no,
+        j.job_status AS status,
+        j.priority,
+        j.pack_size,
+
+        -- project
+        p.project_name,
+        p.project_no,
+      
+
+        -- brand hierarchy
+        b.name  AS brand,
+        sb.name AS sub_brand,
+        f.name  AS flavour,
+
+        -- pack
+        pt.name AS pack_type,
+        pc.name AS pack_code,
+
+        -- assign job
+        aj.time_budget AS total_time,
+
+        -- production user
+        CONCAT(u.first_name, ' ', u.last_name) AS assigned_to
+
+      FROM assign_jobs aj
+
+      JOIN jobs j
+        ON JSON_CONTAINS(aj.job_ids, JSON_ARRAY(j.id))
+
+      JOIN projects p
+        ON j.project_id = p.id
+
+      LEFT JOIN brand_names b
+        ON j.brand_id = b.id
+
+      LEFT JOIN sub_brands sb
+        ON j.sub_brand_id = sb.id
+
+      LEFT JOIN flavours f
+        ON j.flavour_id = f.id
+
+      LEFT JOIN pack_types pt
+        ON j.pack_type_id = pt.id
+
+      LEFT JOIN pack_codes pc
+        ON j.pack_code_id = pc.id
+
+      LEFT JOIN users u
+        ON aj.production_id = u.id
+
+      WHERE 
+        aj.production_id = ?
+        AND j.job_status = 'reject'
+
+      ORDER BY p.expected_completion_date ASC
+      `,
+      [productionId]
+    );
+    /*p.expected_completion_date AS due_date, */
+
+    res.json({
+      success: true,
+      count: rows.length,
+      data: rows
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: "Server Error"
+    });
+  }
 };
