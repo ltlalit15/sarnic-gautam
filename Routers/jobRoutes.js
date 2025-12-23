@@ -5,7 +5,9 @@ import {
   getJobById,
   getJobsByProjectId,
   updateJob,
-  deleteJob
+  deleteJob,
+  getJobHistoryByEmployeeId,
+  getJobHistoryByProductionId
 } from "../Controllers/JobCtrl.js";
 
 const router = express.Router();
@@ -14,6 +16,8 @@ router.post("/jobs", createJob);
 router.get("/jobs", getAllJobs);
 router.get("/jobs/:id", getJobById);
 router.get("/jobs/project/:projectId", getJobsByProjectId);
+router.get("/jobs/jobhistory/:employeeId",getJobHistoryByEmployeeId);
+router.get("/jobs/jobHistoryproduction/:productionId",getJobHistoryByProductionId)
 router.put("/jobs/:id", updateJob);
 router.delete("/jobs/:id", deleteJob);
 

@@ -282,3 +282,174 @@ export const deleteJob = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// export const getJobHistoryByProductionId = async (req, res) => {
+//   try {
+//     const { productionId } = req.params;
+
+//     const [rows] = await pool.query(
+//       `
+//       SELECT
+//         aj.id AS assign_job_id,
+//         aj.project_id,
+//         aj.job_ids,
+//         aj.production_id,
+//         aj.employee_id,
+//         aj.task_description,
+//         aj.time_budget,
+//         aj.admin_status,
+//         aj.production_status,
+//         aj.employee_status,
+//         aj.created_at,
+
+//         j.job_no,
+//         j.job_status,
+//         j.priority,
+
+//         p.project_name,
+
+//         u.first_name AS employee_first_name,
+//         u.last_name AS employee_last_name
+
+//       FROM assign_jobs aj
+//       LEFT JOIN jobs j 
+//         ON FIND_IN_SET(j.id, REPLACE(REPLACE(aj.job_ids, '[', ''), ']', ''))
+
+//       LEFT JOIN projects p 
+//         ON p.id = aj.project_id
+
+//       LEFT JOIN users u 
+//         ON u.id = aj.employee_id
+
+//       WHERE aj.production_id = ?
+//       ORDER BY aj.created_at DESC
+//       `,
+//       [productionId]
+//     );
+
+//     res.json({
+//       success: true,
+//       count: rows.length,
+//       data: rows
+//     });
+
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).json({
+//       success: false,
+//       message: "Failed to fetch production job history"
+//     });
+//   }
+// };
+
+export const getJobHistoryByProductionId = async (req, res) => {
+  try {
+    const { productionId } = req.params;
+
+    const [rows] = await pool.query(`
+      SELECT
+        j.job_no                                AS jobNo,
+        p.project_name                         AS projectName,
+
+        b.name                                 AS brand,
+        sb.name                                AS subBrand,
+        f.name                                 AS flavour,
+        pt.name                                AS packType,
+        j.pack_size                            AS packSize,
+        pc.name                                AS packCode,
+
+        j.priority                             AS priority,
+        p.expected_completion_date             AS dueDate,
+
+        COALESCE(
+          CONCAT(emp.first_name, ' ', emp.last_name),
+          CONCAT(prod.first_name, ' ', prod.last_name),
+          'Not Assigned'
+        )                                      AS assignedTo,
+
+        aj.time_budget                         AS totalTime,
+        aj.production_status                   AS status
+        
+      FROM assign_jobs aj
+
+      LEFT JOIN jobs j
+        ON FIND_IN_SET(j.id, REPLACE(REPLACE(aj.job_ids,'[',''),']',''))
+
+      LEFT JOIN projects p       ON p.id = aj.project_id
+      LEFT JOIN brand_names b    ON b.id = j.brand_id
+      LEFT JOIN sub_brands sb    ON sb.id = j.sub_brand_id
+      LEFT JOIN flavours f       ON f.id = j.flavour_id
+      LEFT JOIN pack_types pt    ON pt.id = j.pack_type_id
+      LEFT JOIN pack_codes pc    ON pc.id = j.pack_code_id
+
+      -- 🔥 BOTH JOINS
+      LEFT JOIN users emp  ON emp.id  = aj.employee_id
+      LEFT JOIN users prod ON prod.id = aj.production_id
+
+      WHERE aj.production_id = ?
+      ORDER BY p.expected_completion_date ASC
+    `, [productionId]);
+
+    res.json({ success: true, data: rows });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Failed to fetch job history" });
+  }
+};
+
+
+
+
+export const getJobHistoryByEmployeeId = async (req, res) => {
+  try {
+    const { employeeId } = req.params;
+
+    const [rows] = await pool.query(`
+      SELECT
+        j.job_no                                AS jobNo,
+        p.project_name                         AS projectName,
+
+        b.name                                 AS brand,
+        sb.name                                AS subBrand,
+        f.name                                 AS flavour,
+        pt.name                                AS packType,
+        j.pack_size                            AS packSize,
+        pc.name                                AS packCode,
+
+        j.priority                             AS priority,
+        p.expected_completion_date             AS dueDate,
+
+        CONCAT(pu.first_name, ' ', pu.last_name) AS assignedTo,
+        aj.time_budget                         AS totalTime,
+        aj.employee_status                     AS status
+
+      FROM assign_jobs aj
+
+      LEFT JOIN jobs j
+        ON FIND_IN_SET(j.id, REPLACE(REPLACE(aj.job_ids,'[',''),']',''))
+
+      LEFT JOIN projects p       ON p.id = aj.project_id
+      LEFT JOIN brand_names b    ON b.id = j.brand_id
+      LEFT JOIN sub_brands sb    ON sb.id = j.sub_brand_id
+      LEFT JOIN flavours f       ON f.id = j.flavour_id
+      LEFT JOIN pack_types pt    ON pt.id = j.pack_type_id
+      LEFT JOIN pack_codes pc    ON pc.id = j.pack_code_id
+      LEFT JOIN users pu         ON pu.id = aj.production_id
+
+      WHERE aj.employee_id = ?
+      ORDER BY p.expected_completion_date ASC
+    `, [employeeId]);
+
+    res.json({ success: true, data: rows });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch employee job history"
+    });
+  }
+};
+
+
