@@ -235,3 +235,115 @@ export const getProjectsByStatus = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// get project overview
+export const getProjectOverviewById = async (req, res) => {
+  try {
+    const { id: projectId } = req.params;
+
+    /* ---------------- Project ---------------- */
+    const [[project]] = await pool.query(
+      `
+      SELECT expected_completion_date, currency
+      FROM projects
+      WHERE id = ?
+      `,
+      [projectId]
+    );
+
+    if (!project) {
+      return res.status(404).json({ success: false, message: "Project not found" });
+    }
+
+    /* ---------------- Jobs ---------------- */
+    const [[jobStats]] = await pool.query(
+      `
+      SELECT 
+        COUNT(*) AS in_progress
+      FROM jobs
+      WHERE project_id = ?
+        AND job_status = 'Active'
+      `,
+      [projectId]
+    );
+
+    /* ---------------- Purchase Orders ---------------- */
+    const [[poStats]] = await pool.query(
+      `
+      SELECT 
+        COUNT(*) AS total_pos,
+        IFNULL(SUM(CAST(po_amount AS DECIMAL(14,2))), 0) AS total_value
+      FROM purchase_orders
+      WHERE project_id = ?
+      `,
+      [projectId]
+    );
+
+    /* ---------------- Days Remaining ---------------- */
+    let daysRemaining = null;
+    if (project.expected_completion_date) {
+      const today = new Date();
+      const endDate = new Date(project.expected_completion_date);
+      daysRemaining = Math.max(
+        Math.ceil((endDate - today) / (1000 * 60 * 60 * 24)),
+        0
+      );
+    }
+
+    /* ---------------- Recent Activity (basic, real) ---------------- */
+    const [recentJobs] = await pool.query(
+      `
+      SELECT 'New job created' AS activity, created_at
+      FROM jobs
+      WHERE project_id = ?
+      ORDER BY created_at DESC
+      LIMIT 2
+      `,
+      [projectId]
+    );
+
+    const [recentPOs] = await pool.query(
+      `
+      SELECT 'New purchase order created' AS activity, created_at
+      FROM purchase_orders
+      WHERE project_id = ?
+      ORDER BY created_at DESC
+      LIMIT 1
+      `,
+      [projectId]
+    );
+
+    const recentActivity = [...recentJobs, ...recentPOs]
+      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+      .slice(0, 3)
+      .map(a => a.activity);
+
+    /* ---------------- Final Response ---------------- */
+    res.json({
+      success: true,
+      data: {
+        in_progress: jobStats.in_progress || 0,
+
+        days_remaining: daysRemaining,
+        due_date: project.expected_completion_date,
+
+        jobs_due_today: 0,          // ❌ column nahi hai
+        total_hours: "00:00",       // ❌ table nahi hai
+
+        purchase_orders: {
+          received: poStats.total_pos || 0, // UI ke liye reuse
+          issued: 0,                         // ❌ status column nahi
+          total_value: poStats.total_value || 0,
+          currency: project.currency || "GBP"
+        },
+
+        recent_activity: recentActivity
+      }
+    });
+
+  } catch (error) {
+    console.error("Project Overview Error:", error.message);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+

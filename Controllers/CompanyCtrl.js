@@ -189,3 +189,71 @@ export const updateCompany = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+export const getAdminDashboard = async (req, res) => {
+  try {
+
+    // ===== TOP CARDS =====
+    const [[cards]] = await pool.query(`
+      SELECT
+        (SELECT COUNT(*) 
+         FROM projects 
+         WHERE status = 'IN_PROGRESS') AS projectsInProgress,
+
+        (SELECT COUNT(*) 
+         FROM jobs 
+         WHERE job_status = 'Active') AS jobsInProgress,
+
+        0 AS jobsDueToday,
+
+        (SELECT COUNT(*) 
+         FROM estimates 
+         WHERE ce_status = 'Draft') AS costEstimates,
+
+        (SELECT COUNT(*) 
+         FROM purchase_orders) AS receivablePO,
+
+        (SELECT COUNT(*) 
+         FROM projects 
+         WHERE status = 'COMPLETED') AS completedProjects
+    `);
+
+    // ===== PROJECT STATUS CHART =====
+    const [projectStatus] = await pool.query(`
+      SELECT 
+        status,
+        COUNT(*) AS count
+      FROM projects
+      GROUP BY status
+    `);
+
+    // ===== RECENT ACTIVITY =====
+    const [recentActivity] = await pool.query(`
+      SELECT
+        project_name,
+        client_name,
+        budget,
+        created_at
+      FROM projects
+      ORDER BY created_at DESC
+      LIMIT 5
+    `);
+
+    res.json({
+      success: true,
+      data: {
+        cards,
+        projectStatus,
+        recentActivity
+      }
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+

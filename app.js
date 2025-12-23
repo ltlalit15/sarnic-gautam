@@ -15,6 +15,7 @@ import costestimateRouter from "./Routers/costestimateRouter.js";
 import purchaseorderRouters from "./Routers/purchaseorderRouters.js";
 import assignJobRoutes from "./Routers/assignJobRoutes.js";
 import invoiceRoutes from "./Routers/invoiceRoutes.js";
+import dashboradRoutes from "./Routers/dashboardRoutes.js";
 
 const router = Router();
 
@@ -34,5 +35,5 @@ router.use("/api/s1", costestimateRouter);
 router.use("/api/s1", purchaseorderRouters);
 router.use("/api/s1", assignJobRoutes);
 router.use("/api/s1", invoiceRoutes);
-
-export default router;
+router.use("/api/s1",dashboradRoutes);
+export default router;  
