@@ -202,7 +202,7 @@ export const getAdminDashboard = async (req, res) => {
 
         (SELECT COUNT(*) 
          FROM jobs 
-         WHERE job_status = 'Active') AS jobsInProgress,
+         WHERE job_status = 'IN_PROGRESS') AS jobsInProgress,
 
         0 AS jobsDueToday,
 
