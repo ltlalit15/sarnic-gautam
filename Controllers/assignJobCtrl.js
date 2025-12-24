@@ -60,16 +60,123 @@ import { pool } from "../Config/dbConnect.js";
 // };
 
 
+// export const createAssignJob = async (req, res) => {
+//   try {
+//     const {
+//       project_id,
+//       job_ids,          // expects "[14]" or "[14,15]"
+//       employee_id,
+//       production_id,
+//       task_description,
+//       time_budget
+//     } = req.body;
+
+//     // -----------------------------
+//     // Validation
+//     // -----------------------------
+//     if (!project_id || !job_ids || (!employee_id && !production_id)) {
+//       return res.status(400).json({ message: "Required fields missing" });
+//     }
+
+//     // -----------------------------
+//     // Status defaults
+//     // -----------------------------
+//     let admin_status = "in_progress";
+//     let production_status = "not_applicable";
+//     let employee_status = "not_applicable";
+
+//     let assignedLabel = "Not Assigned";
+
+//     // -----------------------------
+//     // Assignment logic
+//     // -----------------------------
+//     if (production_id && !employee_id) {
+//       production_status = "in_progress";
+//       assignedLabel = `${production_id}`;
+//     }
+
+//     if (employee_id && !production_id) {
+//       admin_status = "complete";
+//       employee_status = "complete";
+//       assignedLabel = `Employee-${employee_id}`;
+//     }
+
+//     // -----------------------------
+//     // 1️⃣ Insert into assign_jobs
+//     // -----------------------------
+//     await pool.query(
+//       `
+//       INSERT INTO assign_jobs
+//       (
+//         project_id,
+//         job_ids,
+//         employee_id,
+//         production_id,
+//         task_description,
+//         time_budget,
+//         admin_status,
+//         production_status,
+//         employee_status
+//       )
+//       VALUES (?,?,?,?,?,?,?,?,?)
+//       `,
+//       [
+//         project_id,
+//         job_ids, // keep JSON string as-is
+//         employee_id || null,
+//         production_id || null,
+//         task_description || null,
+//         time_budget || null,
+//         admin_status,
+//         production_status,
+//         employee_status
+//       ]
+//     );
+
+//     // -----------------------------
+//     // 2️⃣ Update jobs table (MariaDB SAFE)
+//     // -----------------------------
+//     await pool.query(
+//       `
+//       UPDATE jobs
+//       SET
+//         job_status = 'in_progress',
+//         assigned = ?
+//       WHERE FIND_IN_SET(
+//         id,
+//         REPLACE(REPLACE(?, '[', ''), ']', '')
+//       )
+//       `,
+//       [assignedLabel, job_ids]
+//     );
+
+//     // -----------------------------
+//     // Response
+//     // -----------------------------
+//     res.status(201).json({
+//       success: true,
+//       message: "Job assigned successfully & jobs updated"
+//     });
+
+//   } catch (error) {
+//     console.error("Assign Job Error:", error);
+//     res.status(500).json({ message: error.message });
+//   }
+// };
+
 export const createAssignJob = async (req, res) => {
   try {
     const {
       project_id,
-      job_ids,          // expects "[14]" or "[14,15]"
+      job_ids,
       employee_id,
       production_id,
       task_description,
       time_budget
     } = req.body;
+
+    // ✅ FIX: convert array → JSON string
+    const jobIdsString = JSON.stringify(job_ids);
 
     // -----------------------------
     // Validation
@@ -84,11 +191,10 @@ export const createAssignJob = async (req, res) => {
     let admin_status = "in_progress";
     let production_status = "not_applicable";
     let employee_status = "not_applicable";
-
     let assignedLabel = "Not Assigned";
 
     // -----------------------------
-    // Assignment logic
+    // Assignment logic (UNCHANGED)
     // -----------------------------
     if (production_id && !employee_id) {
       production_status = "in_progress";
@@ -102,39 +208,78 @@ export const createAssignJob = async (req, res) => {
     }
 
     // -----------------------------
-    // 1️⃣ Insert into assign_jobs
+    // 1️⃣ Check existing assign job
     // -----------------------------
-    await pool.query(
+    const [existing] = await pool.query(
       `
-      INSERT INTO assign_jobs
-      (
-        project_id,
-        job_ids,
-        employee_id,
-        production_id,
-        task_description,
-        time_budget,
-        admin_status,
-        production_status,
-        employee_status
-      )
-      VALUES (?,?,?,?,?,?,?,?,?)
+      SELECT id FROM assign_jobs
+      WHERE project_id = ? AND job_ids = ?
+      LIMIT 1
       `,
-      [
-        project_id,
-        job_ids, // keep JSON string as-is
-        employee_id || null,
-        production_id || null,
-        task_description || null,
-        time_budget || null,
-        admin_status,
-        production_status,
-        employee_status
-      ]
+      [project_id, jobIdsString]
     );
 
     // -----------------------------
-    // 2️⃣ Update jobs table (MariaDB SAFE)
+    // 2️⃣ Insert OR Update assign_jobs
+    // -----------------------------
+    if (existing.length > 0) {
+      await pool.query(
+        `
+        UPDATE assign_jobs
+        SET
+          employee_id = ?,
+          production_id = ?,
+          task_description = ?,
+          time_budget = ?,
+          admin_status = ?,
+          production_status = ?,
+          employee_status = ?
+        WHERE id = ?
+        `,
+        [
+          employee_id || null,
+          production_id || null,
+          task_description || null,
+          time_budget || null,
+          admin_status,
+          production_status,
+          employee_status,
+          existing[0].id
+        ]
+      );
+    } else {
+      await pool.query(
+        `
+        INSERT INTO assign_jobs
+        (
+          project_id,
+          job_ids,
+          employee_id,
+          production_id,
+          task_description,
+          time_budget,
+          admin_status,
+          production_status,
+          employee_status
+        )
+        VALUES (?,?,?,?,?,?,?,?,?)
+        `,
+        [
+          project_id,
+          jobIdsString,
+          employee_id || null,
+          production_id || null,
+          task_description || null,
+          time_budget || null,
+          admin_status,
+          production_status,
+          employee_status
+        ]
+      );
+    }
+
+    // -----------------------------
+    // 3️⃣ Update jobs table (UNCHANGED)
     // -----------------------------
     await pool.query(
       `
@@ -147,11 +292,11 @@ export const createAssignJob = async (req, res) => {
         REPLACE(REPLACE(?, '[', ''), ']', '')
       )
       `,
-      [assignedLabel, job_ids]
+      [assignedLabel, jobIdsString]
     );
 
     // -----------------------------
-    // Response
+    // Response (UNCHANGED)
     // -----------------------------
     res.status(201).json({
       success: true,
@@ -163,7 +308,6 @@ export const createAssignJob = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-
 
 // export const productionAssignToEmployee = async (req, res) => {
 //   try {

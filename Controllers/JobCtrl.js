@@ -222,6 +222,52 @@ export const getJobById = async (req, res) => {
 //   }
 // };
 
+// export const getJobsByProjectId = async (req, res) => {
+//   try {
+//     const { projectId } = req.params;
+
+//     const [rows] = await pool.query(`
+//       SELECT
+//         j.*,
+//         p.project_no,
+//         p.project_name AS main_project_name,
+//         b.name AS brand_name,
+//         sb.name AS sub_brand_name,
+//         f.name AS flavour_name,
+//         pt.name AS pack_type_name,
+//         pc.name AS pack_code_name,
+
+//         -- Assigned PRODUCTION user details
+//         pu.id AS assigned_user_id,
+//         CONCAT(pu.first_name, ' ', pu.last_name) AS assigned_name,
+//         pu.role_name AS assigned_role
+
+//       FROM jobs j
+//       LEFT JOIN projects p ON j.project_id = p.id
+//       LEFT JOIN brand_names b ON j.brand_id = b.id
+//       LEFT JOIN sub_brands sb ON j.sub_brand_id = sb.id
+//       LEFT JOIN flavours f ON j.flavour_id = f.id
+//       LEFT JOIN pack_types pt ON j.pack_type_id = pt.id
+//       LEFT JOIN pack_codes pc ON j.pack_code_id = pc.id
+
+//       -- 🔥 map job → assign_jobs using JSON job_ids
+//       LEFT JOIN assign_jobs aj
+//         ON JSON_CONTAINS(aj.job_ids, JSON_ARRAY(j.id))
+
+//       -- 🔥 production user
+//       LEFT JOIN users pu
+//         ON pu.id = aj.production_id
+
+//       WHERE j.project_id = ?
+//       ORDER BY j.id DESC
+//     `, [projectId]);
+
+//     res.json({ success: true, data: rows });
+
+//   } catch (error) {
+//     res.status(500).json({ message: error.message });
+//   }
+// };
 export const getJobsByProjectId = async (req, res) => {
   try {
     const { projectId } = req.params;
@@ -237,7 +283,11 @@ export const getJobsByProjectId = async (req, res) => {
         pt.name AS pack_type_name,
         pc.name AS pack_code_name,
 
-        -- Assigned PRODUCTION user details
+        aj.id AS assign_id,
+        aj.production_status,
+        aj.admin_status,
+        aj.employee_status,
+
         pu.id AS assigned_user_id,
         CONCAT(pu.first_name, ' ', pu.last_name) AS assigned_name,
         pu.role_name AS assigned_role
@@ -250,13 +300,17 @@ export const getJobsByProjectId = async (req, res) => {
       LEFT JOIN pack_types pt ON j.pack_type_id = pt.id
       LEFT JOIN pack_codes pc ON j.pack_code_id = pc.id
 
-      -- 🔥 map job → assign_jobs using JSON job_ids
       LEFT JOIN assign_jobs aj
-        ON JSON_CONTAINS(aj.job_ids, JSON_ARRAY(j.id))
+        ON aj.id = (
+          SELECT aj2.id
+          FROM assign_jobs aj2
+          WHERE JSON_CONTAINS(aj2.job_ids, JSON_ARRAY(j.id))
+            AND aj2.project_id = j.project_id
+          ORDER BY aj2.created_at DESC
+          LIMIT 1
+        )
 
-      -- 🔥 production user
-      LEFT JOIN users pu
-        ON pu.id = aj.production_id
+      LEFT JOIN users pu ON pu.id = j.assigned
 
       WHERE j.project_id = ?
       ORDER BY j.id DESC
