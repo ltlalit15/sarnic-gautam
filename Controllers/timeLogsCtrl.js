@@ -366,6 +366,63 @@ export const getTimeLogsByEmployee = async (req, res) => {
   }
 };
 
+export const getTimeLogsAllEmployee = async (req, res) => {
+  try {
+
+    const [rows] = await pool.query(
+      `
+      SELECT 
+        twl.*,
+        j.job_no AS JobID,
+        aj.task_description AS task_description,  
+        p.project_name AS project_name,
+        j.assigned AS assign_status,
+        CONCAT(u.first_name, ' ', u.last_name) AS employee_name,
+        CONCAT(prod.first_name, ' ', prod.last_name) AS production_name,
+        SEC_TO_TIME(
+          TIME_TO_SEC(IFNULL(twl.time,'00:00:00')) +
+          TIME_TO_SEC(IFNULL(twl.overtime,'00:00:00'))
+        ) AS total_time
+
+      FROM time_work_logs twl
+
+      LEFT JOIN jobs j 
+        ON twl.job_id = j.id
+
+      LEFT JOIN projects p 
+        ON twl.project_id = p.id
+
+      LEFT JOIN users u 
+        ON twl.employee_id = u.id
+
+      LEFT JOIN users prod 
+        ON twl.production_id = prod.id
+
+      LEFT JOIN assign_jobs aj 
+        ON JSON_CONTAINS(aj.job_ids, JSON_ARRAY(j.id))
+
+      -- 👇 yahin sirf employees chahiye
+      WHERE u.role_name = 'employee'
+
+      ORDER BY twl.date DESC, twl.id DESC
+      `
+    );
+
+    res.json({
+      success: true,
+      data: rows
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+
+
 
 export const getAllTimeLogsEmployeeWithTask = async (req, res) => {
   try {

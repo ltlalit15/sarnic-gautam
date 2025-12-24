@@ -1,5 +1,5 @@
 import express from "express";
-import { createTimeLogs, getAllTimeLogs, getAllTimeLogsEmployeeWithTask, getByIdTimeLogs, getTimeLogsByEmployee, getTimeLogsByProduction, removeTimeLogs, updateTimeLogs } from "../Controllers/timeLogsCtrl.js";
+import { createTimeLogs, getAllTimeLogs, getAllTimeLogsEmployeeWithTask, getByIdTimeLogs, getTimeLogsAllEmployee, getTimeLogsByEmployee, getTimeLogsByProduction, removeTimeLogs, updateTimeLogs } from "../Controllers/timeLogsCtrl.js";
 
 const router = express.Router();
 
@@ -11,6 +11,7 @@ router.get("/time-logs/employee/all",getAllTimeLogsEmployeeWithTask);
 router.get("/time-logs/:id", getByIdTimeLogs);
 router.put("/time-logs/:id", updateTimeLogs);
 router.delete("/time-logs/:id", removeTimeLogs);
+router.get("/time-logs/onlyemployeeall/all",getTimeLogsAllEmployee)
 router.get("/time-logs/employee/:employeeId", getTimeLogsByEmployee);
 router.get("/time-logs/production/:productionId", getTimeLogsByProduction);
 
