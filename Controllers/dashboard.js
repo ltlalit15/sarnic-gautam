@@ -15,16 +15,22 @@ export const getProductionDashboard = async (req, res) => {
       SELECT
         (SELECT COUNT(*) 
          FROM jobs 
-         WHERE job_status = 'Active'
+         WHERE job_status = 'in_progress'
          AND assigned = ?) AS inProgressJobs,
+
+          (SELECT COUNT(*) 
+     FROM jobs 
+     WHERE job_status = 'Active'
+     AND assigned = ?) AS activeJobs,
+
 
         (SELECT COUNT(*) 
          FROM jobs 
-         WHERE job_status = 'Completed'
+         WHERE job_status = 'completed'
          AND assigned = ?) AS completedJobs,
 
         0 AS hoursLogged
-    `, [productionId, productionId]);
+    `, [productionId, productionId,productionId]);
 
     // ===== WEEKLY PERFORMANCE =====
     const [[weekly]] = await pool.query(`
@@ -40,7 +46,7 @@ export const getProductionDashboard = async (req, res) => {
 
         (SELECT COUNT(*) 
          FROM jobs 
-         WHERE job_status = 'Active'
+         WHERE job_status = 'active' or "in_progress"
          AND assigned = ?
          AND YEARWEEK(created_at, 1) = YEARWEEK(CURDATE(), 1)
         ) AS dueThisWeek
@@ -66,7 +72,9 @@ export const getProductionDashboard = async (req, res) => {
         topCards: {
           inProgress: topCards.inProgressJobs,
           completed: topCards.completedJobs,
+          active:topCards.activeJobs,
           hoursLogged: `${topCards.hoursLogged}h`
+
         },
 
         weeklyPerformance: {
@@ -112,8 +120,13 @@ export const getEmployeeDashboard = async (req, res) => {
       SELECT
         (SELECT COUNT(*)
          FROM jobs
-         WHERE job_status = 'Active'
+         WHERE job_status = 'in_progress'
          AND assigned = ?) AS inProgressJobs,
+
+          (SELECT COUNT(*)
+         FROM jobs
+         WHERE job_status = 'Active'
+         AND assigned = ?) AS activeJobs,
 
         (SELECT COUNT(*)
          FROM jobs
@@ -121,7 +134,7 @@ export const getEmployeeDashboard = async (req, res) => {
          AND assigned = ?) AS completedJobs,
 
         0 AS hoursLogged
-    `, [employeeId, employeeId]);
+    `, [employeeId, employeeId,employeeId]);
 
     // ===== WEEKLY PERFORMANCE =====
     const [[weekly]] = await pool.query(`
@@ -158,6 +171,7 @@ export const getEmployeeDashboard = async (req, res) => {
         topCards: {
           inProgress: topCards.inProgressJobs,
           completed: topCards.completedJobs,
+          active:topCards.activeJobs,
           hoursLogged: `${topCards.hoursLogged}h`
         },
 
