@@ -424,48 +424,154 @@ export const getTimeLogsAllEmployee = async (req, res) => {
 
 
 
+// export const getAllTimeLogsEmployeeWithTask = async (req, res) => {
+
+//   try {
+//     const [rows] = await pool.query(
+//       `
+//       SELECT 
+//         twl.*,
+//         j.job_no AS JobID,
+
+//         -- task description from assign_jobs
+//         aj.task_description AS task_description,
+
+//         p.project_name AS project_name,
+//         j.assigned AS assign_status,
+
+//         -- employee & production names
+//         CONCAT(u.first_name, ' ', u.last_name) AS employee_name,
+//         CONCAT(prod.first_name, ' ', prod.last_name) AS production_name,
+
+//         -- total time
+//         SEC_TO_TIME(
+//           TIME_TO_SEC(IFNULL(twl.time,'00:00:00')) +
+//           TIME_TO_SEC(IFNULL(twl.overtime,'00:00:00'))
+//         ) AS total_time
+
+//       FROM time_work_logs twl
+//       LEFT JOIN jobs j ON twl.job_id = j.id
+//       LEFT JOIN projects p ON twl.project_id = p.id
+//       LEFT JOIN users u ON twl.employee_id = u.id
+//       LEFT JOIN users prod ON twl.production_id = prod.id
+
+//       -- match job inside assign_jobs.job_ids ([15], [15,16])
+//       LEFT JOIN assign_jobs aj 
+//         ON FIND_IN_SET(
+//           j.id,
+//           REPLACE(REPLACE(aj.job_ids,'[',''),']','')
+//         )
+
+//       -- ✅ ONLY records having employee_id
+//       WHERE twl.employee_id IS NOT NULL
+
+//       ORDER BY twl.date DESC, twl.id DESC
+//       `
+//     );
+
+//     res.json({ success: true, data: rows });
+
+//   } catch (error) {
+//     res.status(500).json({ success: false, message: error.message });
+//   }
+// };
+
+
+// export const getAllTimeLogsEmployeeWithTask = async (req, res) => {
+//   try {
+//     const { jobId, employeeId } = req.params;
+
+//     const [rows] = await pool.query(
+//       `
+//       SELECT 
+//         twl.*,
+//         j.job_no AS JobID,
+
+//         -- task description from assign_jobs
+//         aj.task_description AS task_description,
+
+//         p.project_name AS project_name,
+//         j.assigned AS assign_status,
+
+//         -- employee & production names
+//         CONCAT(u.first_name, ' ', u.last_name) AS employee_name,
+//         CONCAT(prod.first_name, ' ', prod.last_name) AS production_name,
+
+//         -- total time
+//         SEC_TO_TIME(
+//           TIME_TO_SEC(IFNULL(twl.time,'00:00:00')) +
+//           TIME_TO_SEC(IFNULL(twl.overtime,'00:00:00'))
+//         ) AS total_time
+
+//       FROM time_work_logs twl
+//       LEFT JOIN jobs j ON twl.job_id = j.id
+//       LEFT JOIN projects p ON twl.project_id = p.id
+//       LEFT JOIN users u ON twl.employee_id = u.id
+//       LEFT JOIN users prod ON twl.production_id = prod.id
+
+//       -- match job inside assign_jobs.job_ids ([15], [15,16])
+//       LEFT JOIN assign_jobs aj 
+//         ON FIND_IN_SET(
+//           j.id,
+//           REPLACE(REPLACE(aj.job_ids,'[',''),']','')
+//         )
+
+//       -- ✅ ONLY CHANGE: filter by jobId & employeeId
+//       WHERE twl.job_id = ? AND twl.employee_id = ?
+
+//       ORDER BY twl.date DESC, twl.id DESC
+//       `,
+//       [jobId, employeeId]
+//     );
+
+//     res.json({ success: true, data: rows });
+
+//   } catch (error) {
+//     res.status(500).json({ success: false, message: error.message });
+//   }
+// };
+
 export const getAllTimeLogsEmployeeWithTask = async (req, res) => {
   try {
+    const employeeId = req.params[0]; // may be undefined
+    const jobId = req.params[1];      // always present
+
+    let whereClause = `WHERE twl.job_id = ?`;
+    const params = [jobId];
+
+    if (employeeId) {
+      whereClause += ` AND twl.employee_id = ?`;
+      params.push(employeeId);
+    }
+
     const [rows] = await pool.query(
       `
       SELECT 
         twl.*,
         j.job_no AS JobID,
-
-        -- task description from assign_jobs
         aj.task_description AS task_description,
-
         p.project_name AS project_name,
         j.assigned AS assign_status,
-
-        -- employee & production names
         CONCAT(u.first_name, ' ', u.last_name) AS employee_name,
         CONCAT(prod.first_name, ' ', prod.last_name) AS production_name,
-
-        -- total time
         SEC_TO_TIME(
           TIME_TO_SEC(IFNULL(twl.time,'00:00:00')) +
           TIME_TO_SEC(IFNULL(twl.overtime,'00:00:00'))
         ) AS total_time
-
       FROM time_work_logs twl
       LEFT JOIN jobs j ON twl.job_id = j.id
       LEFT JOIN projects p ON twl.project_id = p.id
       LEFT JOIN users u ON twl.employee_id = u.id
       LEFT JOIN users prod ON twl.production_id = prod.id
-
-      -- match job inside assign_jobs.job_ids ([15], [15,16])
       LEFT JOIN assign_jobs aj 
         ON FIND_IN_SET(
           j.id,
           REPLACE(REPLACE(aj.job_ids,'[',''),']','')
         )
-
-      -- ✅ ONLY records having employee_id
-      WHERE twl.employee_id IS NOT NULL
-
+      ${whereClause}
       ORDER BY twl.date DESC, twl.id DESC
-      `
+      `,
+      params
     );
 
     res.json({ success: true, data: rows });

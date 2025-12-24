@@ -7,7 +7,11 @@ const router = express.Router();
 
 router.post("/time-logs", createTimeLogs);
 router.get("/time-logs", getAllTimeLogs);
-router.get("/time-logs/employee/all",getAllTimeLogsEmployeeWithTask);
+// router.get("/time-logs/employee/:employeeId/job/:jobId",getAllTimeLogsEmployeeWithTask);
+router.get(
+  /^\/time-logs\/employee(?:\/(\d+))?\/job\/(\d+)$/,
+  getAllTimeLogsEmployeeWithTask
+);
 router.get("/time-logs/:id", getByIdTimeLogs);
 router.put("/time-logs/:id", updateTimeLogs);
 router.delete("/time-logs/:id", removeTimeLogs);
