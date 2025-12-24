@@ -175,13 +175,17 @@ export const createAssignJob = async (req, res) => {
       time_budget
     } = req.body;
 
-    // ✅ FIX: convert array → JSON string
-    const jobIdsString = JSON.stringify(job_ids);
+    // --------------------------------
+    // Normalize job_ids (VERY IMPORTANT)
+    // DB format: [15] or [17,16]
+    // --------------------------------
+    const jobIdsString =
+      typeof job_ids === "string" ? job_ids : `[${job_ids.join(",")}]`;
 
     // -----------------------------
     // Validation
     // -----------------------------
-    if (!project_id || !job_ids || (!employee_id && !production_id)) {
+    if (!project_id || !jobIdsString || (!employee_id && !production_id)) {
       return res.status(400).json({ message: "Required fields missing" });
     }
 
@@ -209,6 +213,7 @@ export const createAssignJob = async (req, res) => {
 
     // -----------------------------
     // 1️⃣ Check existing assign job
+    // (project + same job_ids)
     // -----------------------------
     const [existing] = await pool.query(
       `
@@ -220,7 +225,7 @@ export const createAssignJob = async (req, res) => {
     );
 
     // -----------------------------
-    // 2️⃣ Insert OR Update assign_jobs
+    // 2️⃣ UPDATE or INSERT assign_jobs
     // -----------------------------
     if (existing.length > 0) {
       await pool.query(
