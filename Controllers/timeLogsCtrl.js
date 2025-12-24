@@ -336,6 +336,7 @@ export const getTimeLogsByEmployee = async (req, res) => {
       SELECT 
         twl.*,
         j.job_no AS JobID,
+        aj.task_description AS task_description,  
         p.project_name AS project_name,
         j.assigned AS assign_status,
         CONCAT(u.first_name, ' ', u.last_name) AS employee_name,
@@ -349,6 +350,9 @@ export const getTimeLogsByEmployee = async (req, res) => {
       LEFT JOIN projects p ON twl.project_id = p.id
       LEFT JOIN users u ON twl.employee_id = u.id
       LEFT JOIN users prod ON twl.production_id = prod.id
+      LEFT JOIN assign_jobs aj 
+  ON JSON_CONTAINS(aj.job_ids, JSON_ARRAY(j.id))
+
       WHERE twl.employee_id = ?
       ORDER BY twl.date DESC, twl.id DESC
       `,
