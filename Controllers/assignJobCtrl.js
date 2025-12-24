@@ -1836,7 +1836,172 @@ export const getCompleteJobsByProduction = async (req, res) => {
   }
 };
 
+export const getAllCompleteJobsProduction = async (req, res) => {
+ try {
+    // const productionId = req.params.production_id;
+
+    const [rows] = await pool.query(
+      `
+      SELECT
+        aj.id AS assign_job_id,
+        j.job_no,
+        j.job_status AS status,
+        j.priority,
+        j.pack_size,
+
+        -- project
+        p.project_name,
+        p.project_no,
+
+        -- brand hierarchy
+        b.name  AS brand,
+        sb.name AS sub_brand,
+        f.name  AS flavour,
+
+        -- pack
+        pt.name AS pack_type,
+        pc.name AS pack_code,
+
+        -- assign job
+        aj.time_budget AS total_time,
+
+        -- production user
+        CONCAT(u.first_name, ' ', u.last_name) AS assigned_to
+
+      FROM assign_jobs aj
+
+      JOIN jobs j
+        ON JSON_CONTAINS(aj.job_ids, JSON_ARRAY(j.id))
+
+      JOIN projects p
+        ON j.project_id = p.id
+
+      LEFT JOIN brand_names b
+        ON j.brand_id = b.id
+
+      LEFT JOIN sub_brands sb
+        ON j.sub_brand_id = sb.id
+
+      LEFT JOIN flavours f
+        ON j.flavour_id = f.id
+
+      LEFT JOIN pack_types pt
+        ON j.pack_type_id = pt.id
+
+      LEFT JOIN pack_codes pc
+        ON j.pack_code_id = pc.id
+
+      LEFT JOIN users u
+        ON aj.employee_id = u.id
+
+      WHERE 
+         aj.employee_id IS NOT NULL
+        AND j.job_status = 'complete'
+
+      ORDER BY aj.created_at DESC
+      `
+      
+    );
+
+    res.json({
+      success: true,
+      count: rows.length,
+      data: rows
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: "Server Error"
+    });
+  }
+};
+
 export const getRejectJobsByProduction = async (req, res) => {
+  try {
+    const productionId = req.params.production_id;
+
+    const [rows] = await pool.query(
+      `
+      SELECT
+        aj.id AS assign_job_id,
+        j.job_no,
+        j.job_status AS status,
+        j.priority,
+        j.pack_size,
+
+        -- project
+        p.project_name,
+        p.project_no,
+
+        -- brand hierarchy
+        b.name  AS brand,
+        sb.name AS sub_brand,
+        f.name  AS flavour,
+
+        -- pack
+        pt.name AS pack_type,
+        pc.name AS pack_code,
+
+        -- assign job
+        aj.time_budget AS total_time,
+
+        -- production user
+        CONCAT(u.first_name, ' ', u.last_name) AS assigned_to
+
+      FROM assign_jobs aj
+
+      JOIN jobs j
+        ON JSON_CONTAINS(aj.job_ids, JSON_ARRAY(j.id))
+
+      JOIN projects p
+        ON j.project_id = p.id
+
+      LEFT JOIN brand_names b
+        ON j.brand_id = b.id
+
+      LEFT JOIN sub_brands sb
+        ON j.sub_brand_id = sb.id
+
+      LEFT JOIN flavours f
+        ON j.flavour_id = f.id
+
+      LEFT JOIN pack_types pt
+        ON j.pack_type_id = pt.id
+
+      LEFT JOIN pack_codes pc
+        ON j.pack_code_id = pc.id
+
+      LEFT JOIN users u
+        ON aj.employee_id = u.id
+
+      WHERE 
+        aj.production_id = ?
+        AND aj.employee_id IS NOT NULL
+        AND j.job_status = 'reject'
+
+      ORDER BY aj.created_at DESC
+      `,
+      [productionId]
+    );
+
+    res.json({
+      success: true,
+      count: rows.length,
+      data: rows
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: "Server Error"
+    });
+  }
+};
+
+export const getAllRejectJobsProduction = async (req, res) => {
   try {
     const productionId = req.params.production_id;
 

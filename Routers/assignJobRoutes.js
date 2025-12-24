@@ -15,7 +15,9 @@ import {
   employeeRejectJob,
   // getAllProductionJobs,
   getAllProductionAssignJobs,
-  getAllInProgressJobsProduction
+  getAllInProgressJobsProduction,
+  getAllCompleteJobsProduction,
+  getAllRejectJobsProduction
 } from "../Controllers/assignJobCtrl.js";
 
 const router = express.Router();
@@ -35,8 +37,9 @@ router.get("/assignjobs/jobs/in-progress/:production_id",getInProgressJobsByProd
 router.get("/assignjobs/jobs/allInprogress",getAllInProgressJobsProduction);
 
 router.get("/assignjobs/jobs/complete/:production_id",getCompleteJobsByProduction);
+router.get("/assignjobs/jobs/allcomplete",getAllCompleteJobsProduction);
 router.get("/assignjobs/jobs/reject/:production_id",getRejectJobsByProduction);
-
+router.get("/assignjobs/jobs/allreject",getAllRejectJobsProduction);
 router.delete("/:id", deleteAssignJob);
 
 export default router;
