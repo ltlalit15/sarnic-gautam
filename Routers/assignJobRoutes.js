@@ -11,14 +11,16 @@ import {
   productionRejectJob,
   getInProgressJobsByProduction,
   getCompleteJobsByProduction,
-  getRejectJobsByProduction
+  getRejectJobsByProduction,
+  employeeRejectJob
 } from "../Controllers/assignJobCtrl.js";
 
 const router = express.Router();
 
 router.post("/assignjobs", createAssignJob);
-router.put("/assignjobs/production-assign/:id", productionAssignToEmployee);
-router.put("/assignjobs/employee-complete/:id", employeeCompleteJob);
+router.put("/assignjobs/production-assign", productionAssignToEmployee);
+router.put("/assignjobs/employee-complete/:assign_job_id/:job_id", employeeCompleteJob);
+router.put("/assignjobs/employee-reject/:assign_job_id/:job_id", employeeRejectJob);
 router.put("/assignjobs/production-complete/:id", productionCompleteJob);
 router.put("/assignjobs/production-return", productionReturnJob);
 router.put("/assignjobs/production-reject", productionRejectJob);
