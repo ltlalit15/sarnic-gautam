@@ -1794,6 +1794,7 @@ export const getInProgressJobsByProduction = async (req, res) => {
       `
       SELECT
         aj.id AS assign_job_id,
+        j.id AS job_id,
         j.job_no,
         j.job_status AS status,
         j.priority,
@@ -1960,6 +1961,7 @@ export const getCompleteJobsByProduction = async (req, res) => {
       `
       SELECT
         aj.id AS assign_job_id,
+        j.id AS job_id,
         j.job_no,
         j.job_status AS status,
         j.priority,
@@ -2043,6 +2045,7 @@ export const getAllCompleteJobsProduction = async (req, res) => {
       `
       SELECT
         aj.id AS assign_job_id,
+        j.id AS job_id,
         j.job_no,
         j.job_status AS status,
         j.priority,
@@ -2125,6 +2128,7 @@ export const getRejectJobsByProduction = async (req, res) => {
       `
       SELECT
         aj.id AS assign_job_id,
+        j.id AS job_id,
         j.job_no,
         j.job_status AS status,
         j.priority,
@@ -2208,6 +2212,7 @@ export const getAllRejectJobsProduction = async (req, res) => {
       `
       SELECT
         aj.id AS assign_job_id,
+        j.id AS job_id,
         j.job_no,
         j.job_status AS status,
         j.priority,
