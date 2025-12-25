@@ -6,12 +6,11 @@ export const createTimeLogs = async (req, res) => {
     const {
       date,
       employee_id,
-      production_id, // ✅ NEW
+      production_id,
       job_id,
       project_id,
       time,
-      overtime,
-      taskDescription
+      overtime
     } = req.body;
 
     const [result] = await pool.query(
@@ -24,20 +23,18 @@ export const createTimeLogs = async (req, res) => {
         job_id,
         project_id,
         time,
-        overtime,
-        task_description
+        overtime
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
       `,
       [
         date || null,
         employee_id,
-        production_id || null, // ✅ NULL safe
+        production_id || null,
         job_id,
         project_id,
         time || null,
-        overtime || null,
-        taskDescription || null
+        overtime || null
       ]
     );
 
@@ -240,12 +237,11 @@ export const updateTimeLogs = async (req, res) => {
     const {
       date,
       employee_id,
-      production_id, // ✅ NEW
+      production_id,
       job_id,
       project_id,
       time,
-      overtime,
-      taskDescription
+      overtime
     } = req.body;
 
     await pool.query(
@@ -254,23 +250,21 @@ export const updateTimeLogs = async (req, res) => {
       SET
         date = ?,
         employee_id = ?,
-        production_id = ?, -- ✅ NEW
+        production_id = ?,
         job_id = ?,
         project_id = ?,
         time = ?,
-        overtime = ?,
-        task_description = ?
+        overtime = ?
       WHERE id = ?
       `,
       [
         date ?? old.date,
         employee_id ?? old.employee_id,
-        production_id ?? old.production_id, // ✅ SAFE
+        production_id ?? old.production_id,
         job_id ?? old.job_id,
         project_id ?? old.project_id,
         time ?? old.time,
         overtime ?? old.overtime,
-        taskDescription ?? old.task_description,
         id
       ]
     );
@@ -281,7 +275,6 @@ export const updateTimeLogs = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
-
 // ================= DELETE =================
 export const removeTimeLogs = async (req, res) => {
   try {
