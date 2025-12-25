@@ -58,41 +58,109 @@ export const createTimeLogs = async (req, res) => {
 };
 
 // ================= GET ALL =================
+// export const getAllTimeLogs = async (req, res) => {
+//   try {
+//     const [rows] = await pool.query(`
+//       SELECT 
+//         twl.*,
+
+//         -- JobID from jobs table
+//         j.job_no AS JobID,
+
+//         -- Project name from projects table
+//         p.project_name AS project_name,
+
+//         -- Assigned info from jobs table
+//         j.assigned AS assign_status,
+
+//         CONCAT(u.first_name, ' ', u.last_name) AS employee_name,
+
+//         CONCAT(prod.first_name, ' ', prod.last_name) AS production_name,
+
+//         -- Total time calculation
+//         SEC_TO_TIME(
+//           TIME_TO_SEC(IFNULL(twl.time,'00:00:00')) +
+//           TIME_TO_SEC(IFNULL(twl.overtime,'00:00:00'))
+//         ) AS total_time
+
+//       FROM time_work_logs twl
+//       LEFT JOIN jobs j ON twl.job_id = j.id
+//       LEFT JOIN projects p ON twl.project_id = p.id
+//       LEFT JOIN users u ON twl.employee_id = u.id
+//       LEFT JOIN users prod ON twl.production_id = prod.id
+
+//       ORDER BY twl.id DESC
+//     `);
+
+//     res.json({ success: true, data: rows });
+
+//   } catch (error) {
+//     res.status(500).json({ success: false, message: error.message });
+//   }
+// };
+
 export const getAllTimeLogs = async (req, res) => {
   try {
     const [rows] = await pool.query(`
       SELECT 
         twl.*,
-
-        -- JobID from jobs table
         j.job_no AS JobID,
-
-        -- Project name from projects table
         p.project_name AS project_name,
-
-        -- Assigned info from jobs table
         j.assigned AS assign_status,
-
-        CONCAT(u.first_name, ' ', u.last_name) AS employee_name,
-
+        CONCAT(emp.first_name, ' ', emp.last_name) AS employee_name,
         CONCAT(prod.first_name, ' ', prod.last_name) AS production_name,
-
-        -- Total time calculation
         SEC_TO_TIME(
           TIME_TO_SEC(IFNULL(twl.time,'00:00:00')) +
           TIME_TO_SEC(IFNULL(twl.overtime,'00:00:00'))
         ) AS total_time
-
       FROM time_work_logs twl
       LEFT JOIN jobs j ON twl.job_id = j.id
       LEFT JOIN projects p ON twl.project_id = p.id
-      LEFT JOIN users u ON twl.employee_id = u.id
+      LEFT JOIN users emp ON twl.employee_id = emp.id
       LEFT JOIN users prod ON twl.production_id = prod.id
-
       ORDER BY twl.id DESC
     `);
 
-    res.json({ success: true, data: rows });
+    // 🔥 RESPONSE TRANSFORMATION LOGIC
+    const formattedData = [];
+
+    rows.forEach(row => {
+      const base = {
+        id: row.id,
+        date: row.date,
+        employee_id: row.employee_id,
+        production_id: row.production_id,
+        job_id: row.job_id,
+        project_id: row.project_id,
+        time: row.time,
+        overtime: row.overtime,
+        task_description: row.task_description,
+        created_at: row.created_at,
+        updated_at: row.updated_at,
+        JobID: row.JobID,
+        project_name: row.project_name,
+        assign_status: row.assign_status,
+        total_time: row.total_time
+      };
+
+      // ✅ If employee exists → create object
+      if (row.employee_id && row.employee_name) {
+        formattedData.push({
+          ...base,
+          employee_name: row.employee_name
+        });
+      }
+
+      // ✅ If production exists → create object
+      if (row.production_id && row.production_name) {
+        formattedData.push({
+          ...base,
+          employee_name: row.production_name
+        });
+      }
+    });
+
+    res.json({ success: true, data: formattedData });
 
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
