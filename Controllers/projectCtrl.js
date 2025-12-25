@@ -196,23 +196,90 @@ export const updateProject = async (req, res) => {
   }
 };
 
+// export const deleteProject = async (req, res) => {
+//   try {
+//     const { id } = req.params;
+
+//     await pool.query(
+//       "DELETE FROM projects WHERE id=?",
+//       [id]
+//     );
+
+//     res.json({
+//       success: true,
+//       message: "Project deleted successfully"
+//     });
+//   } catch (error) {
+//     res.status(500).json({ message: error.message });
+//   }
+// };
+
+
 export const deleteProject = async (req, res) => {
+  const connection = await pool.getConnection();
+
   try {
     const { id } = req.params;
 
-    await pool.query(
-      "DELETE FROM projects WHERE id=?",
+    await connection.beginTransaction();
+
+    // 1️⃣ Time logs (depends on jobs + project)
+    await connection.query(
+      "DELETE FROM time_work_logs WHERE project_id = ?",
       [id]
     );
+
+    // 2️⃣ Assign jobs
+    await connection.query(
+      "DELETE FROM assign_jobs WHERE project_id = ?",
+      [id]
+    );
+
+    // 3️⃣ Jobs
+    await connection.query(
+      "DELETE FROM jobs WHERE project_id = ?",
+      [id]
+    );
+
+    // 4️⃣ Invoices
+    await connection.query(
+      "DELETE FROM invoices WHERE project_id = ?",
+      [id]
+    );
+
+    // 5️⃣ Estimates
+    await connection.query(
+      "DELETE FROM estimates WHERE project_id = ?",
+      [id]
+    );
+
+    // 6️⃣ Purchase Orders
+    await connection.query(
+      "DELETE FROM purchase_orders WHERE project_id = ?",
+      [id]
+    );
+
+    // 7️⃣ Finally delete project
+    await connection.query(
+      "DELETE FROM projects WHERE id = ?",
+      [id]
+    );
+
+    await connection.commit();
 
     res.json({
       success: true,
       message: "Project deleted successfully"
     });
+
   } catch (error) {
+    await connection.rollback();
     res.status(500).json({ message: error.message });
+  } finally {
+    connection.release();
   }
 };
+
 
 export const getProjectsByStatus = async (req, res) => {
   try {

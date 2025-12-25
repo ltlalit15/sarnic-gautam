@@ -289,8 +289,13 @@ export const getJobsByProjectId = async (req, res) => {
         aj.employee_status,
 
         pu.id AS assigned_user_id,
-        CONCAT(pu.first_name, ' ', pu.last_name) AS assigned_name,
-        pu.role_name AS assigned_role
+
+        -- 🔁 CHANGED: assigned_name logic (production override)
+        CASE
+          WHEN aj.production_id IS NOT NULL
+            THEN CONCAT(prod.first_name, ' ', prod.last_name)
+          ELSE CONCAT(pu.first_name, ' ', pu.last_name)
+        END AS assigned_name
 
       FROM jobs j
       LEFT JOIN projects p ON j.project_id = p.id
@@ -312,6 +317,9 @@ export const getJobsByProjectId = async (req, res) => {
 
       LEFT JOIN users pu ON pu.id = j.assigned
 
+      -- 🆕 ADDED: production user join (required for override)
+      LEFT JOIN users prod ON prod.id = aj.production_id
+
       WHERE j.project_id = ?
       ORDER BY j.id DESC
     `, [projectId]);
@@ -322,6 +330,7 @@ export const getJobsByProjectId = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
 export const updateJob = async (req, res) => {
   try {
     const { id } = req.params;
@@ -370,15 +379,91 @@ export const updateJob = async (req, res) => {
   }
 };
 
+// export const deleteJob = async (req, res) => {
+//   try {
+//     const { id } = req.params;
+
+//     await pool.query("DELETE FROM jobs WHERE id = ?", [id]);
+
+//     res.json({ success: true, message: "Job deleted successfully" });
+//   } catch (error) {
+//     res.status(500).json({ message: error.message });
+//   }
+// };
 export const deleteJob = async (req, res) => {
+  const connection = await pool.getConnection();
+
   try {
     const { id } = req.params;
+    const jobId = Number(id);
+    console.log("Deleting Job ID:", jobId);
 
-    await pool.query("DELETE FROM jobs WHERE id = ?", [id]);
+    await connection.beginTransaction();
 
-    res.json({ success: true, message: "Job deleted successfully" });
+    // 1️⃣ Delete time logs for this job
+    await connection.query(
+      "DELETE FROM time_work_logs WHERE job_id = ?",
+      [jobId]
+    );
+
+    // 2️⃣ Fetch assign_jobs that contain this job_id
+    const [assignJobs] = await connection.query(
+      `
+      SELECT id, job_ids
+      FROM assign_jobs
+      WHERE FIND_IN_SET(
+        ?,
+        REPLACE(REPLACE(job_ids, '[', ''), ']', '')
+      )
+      `,
+      [jobId]
+    );
+
+    // 3️⃣ Update or delete assign_jobs rows
+    for (const row of assignJobs) {
+      // Convert "[17,16]" → [17,16]
+      const jobIdsArray = row.job_ids
+        .replace("[", "")
+        .replace("]", "")
+        .split(",")
+        .map(Number)
+        .filter(jid => jid !== jobId);
+
+      if (jobIdsArray.length === 0) {
+        await connection.query(
+          "DELETE FROM assign_jobs WHERE id = ?",
+          [row.id]
+        );
+      } else {
+        await connection.query(
+          "UPDATE assign_jobs SET job_ids = ? WHERE id = ?",
+          [`[${jobIdsArray.join(",")}]`, row.id]
+        );
+      }
+    }
+
+   const [jobDeleteResult] = await connection.query(
+      "DELETE FROM jobs WHERE id = ?",
+      [jobId]
+    );
+
+    if (jobDeleteResult.affectedRows === 0) {
+      throw new Error("Job not found or already deleted");
+    }
+
+    await connection.commit();
+
+    res.json({
+      success: true,
+      message: "Job deleted successfully"
+    });
+
   } catch (error) {
+    await connection.rollback();
+    console.error("Delete Job Error:", error);
     res.status(500).json({ message: error.message });
+  } finally {
+    connection.release();
   }
 };
 
@@ -498,8 +583,6 @@ export const getJobHistoryByProductionId = async (req, res) => {
 };
 
 
-
-
 export const getJobHistoryByEmployeeId = async (req, res) => {
   try {
     const { employeeId } = req.params;
@@ -550,5 +633,4 @@ export const getJobHistoryByEmployeeId = async (req, res) => {
     });
   }
 };
-
 
