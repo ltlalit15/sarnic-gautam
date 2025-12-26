@@ -5,7 +5,16 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // Enable CORS for all routes
-app.use(cors());
+app.use(
+  cors({
+    origin: [
+      "http://localhost:5173",
+      "https://sanric-project.netlify.app",
+    ],
+    credentials: true,
+  })
+);
+
 app.use(express.json());
 
 // Health check endpoint
