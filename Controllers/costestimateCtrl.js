@@ -627,11 +627,36 @@ export const updateEstimate = async (req, res) => {
 };
 
 export const deleteEstimate = async (req, res) => {
+  const connection = await pool.getConnection();
   try {
     const { id } = req.params;
-    await pool.query("DELETE FROM estimates WHERE id = ?", [id]);
-    res.json({ success: true, message: "Estimate deleted successfully" });
+
+    await connection.beginTransaction();
+
+    // 1️⃣ Delete related purchase orders
+    await connection.query(
+      "DELETE FROM purchase_orders WHERE cost_estimation_id = ?",
+      [id]
+    );
+
+    // 2️⃣ Delete estimate
+    await connection.query(
+      "DELETE FROM estimates WHERE id = ?",
+      [id]
+    );
+
+    await connection.commit();
+
+    res.json({
+      success: true,
+      message: "Estimate deleted successfully"
+    });
+
   } catch (error) {
+    await connection.rollback();
     res.status(500).json({ message: error.message });
+  } finally {
+    connection.release();
   }
 };
+

@@ -289,8 +289,13 @@ export const getJobsByProjectId = async (req, res) => {
         aj.employee_status,
 
         pu.id AS assigned_user_id,
-        CONCAT(pu.first_name, ' ', pu.last_name) AS assigned_name,
-        pu.role_name AS assigned_role
+
+        -- 🔁 CHANGED: assigned_name logic (production override)
+        CASE
+          WHEN aj.production_id IS NOT NULL
+            THEN CONCAT(prod.first_name, ' ', prod.last_name)
+          ELSE CONCAT(pu.first_name, ' ', pu.last_name)
+        END AS assigned_name
 
       FROM jobs j
       LEFT JOIN projects p ON j.project_id = p.id
@@ -311,6 +316,9 @@ export const getJobsByProjectId = async (req, res) => {
         )
 
       LEFT JOIN users pu ON pu.id = j.assigned
+
+      -- 🆕 ADDED: production user join (required for override)
+      LEFT JOIN users prod ON prod.id = aj.production_id
 
       WHERE j.project_id = ?
       ORDER BY j.id DESC
