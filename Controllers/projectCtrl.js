@@ -436,7 +436,7 @@ GROUP BY currency
       purchase_orders = {
         received: inv.received || 0,
         issued: inv.issued || 0,
-        total_value: inv.total_value?.toFixed(2) || "0.00",
+        total_value: Number(inv.total_value || 0).toFixed(2),
         currency: inv.currency || "USD",
       };
     }
