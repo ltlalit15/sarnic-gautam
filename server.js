@@ -8,15 +8,16 @@ const PORT = process.env.PORT || 3001;
 app.use(
   cors({
     origin: [
+      process.env.FRONTEND_URL, 
       "http://localhost:5173",
       "https://sanric-project.netlify.app",
-    ],
+    ].filter(Boolean) ,
     credentials: true,
   })
 );
 
 app.use(express.json());
-
+app.set('trust proxy', 1);
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', message: 'ICS Proxy Server is running' });
