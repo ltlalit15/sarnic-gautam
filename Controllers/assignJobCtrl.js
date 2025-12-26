@@ -2121,8 +2121,11 @@ export const getInProgressJobsByProduction = async (req, res) => {
 
         -- assign job
         aj.time_budget AS total_time,
+        aj.employee_status,          -- ✅ added
+        aj.admin_status,
+        aj.production_status,
 
-        -- production user
+        -- assigned employee
         CONCAT(u.first_name, ' ', u.last_name) AS assigned_to
 
       FROM assign_jobs aj
@@ -2149,7 +2152,7 @@ export const getInProgressJobsByProduction = async (req, res) => {
         ON j.pack_code_id = pc.id
 
       LEFT JOIN users u
-        ON j.assigned = u.id
+        ON aj.employee_id = u.id   -- ✅ corrected join
 
       WHERE 
         aj.production_id = ?
@@ -2174,6 +2177,7 @@ export const getInProgressJobsByProduction = async (req, res) => {
     });
   }
 };
+
 
 export const getAllInProgressJobsProduction = async (req, res) => {
   try {
