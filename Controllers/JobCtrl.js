@@ -419,18 +419,18 @@ export const getJobsByProjectId = async (req, res) => {
         pt.name AS pack_type_name,
         pc.name AS pack_code_name,
 
-        aj.id AS assign_id,
-        aj.production_status,
-        aj.admin_status,
-        aj.employee_status,
+        MAX(aj.id) AS assign_id,
+        MAX(aj.production_status) AS production_status,
+        MAX(aj.admin_status) AS admin_status,
+        MAX(aj.employee_status) AS employee_status,
 
-        pu.id AS assigned_user_id,
+        MAX(pu.id) AS assigned_user_id,
 
         -- assigned name (production override)
         CASE
-          WHEN aj.production_id IS NOT NULL
-            THEN CONCAT(prod.first_name, ' ', prod.last_name)
-          ELSE CONCAT(pu.first_name, ' ', pu.last_name)
+          WHEN MAX(aj.production_id) IS NOT NULL
+            THEN CONCAT(MAX(prod.first_name), ' ', MAX(prod.last_name))
+          ELSE CONCAT(MAX(pu.first_name), ' ', MAX(pu.last_name))
         END AS assigned_name,
 
         -- ✅ TOTAL TIME PER JOB (HH:MM, supports >24h)
