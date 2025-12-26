@@ -347,6 +347,167 @@ export const getAllEstimates = async (req, res) => {
 
 
 
+// export const getPdfDataById = async (req, res) => {
+//   try {
+//     const { id } = req.params;
+
+//     const [[row]] = await pool.query(`
+//       SELECT 
+//         e.estimate_no,
+//         e.estimate_date,
+//         e.currency,
+//         e.line_items,
+//         e.subtotal,
+//         e.vat_rate,
+//         e.vat_amount,
+//         e.total_amount,
+//         e.notes,
+
+//         p.project_name,
+//         p.project_no,
+
+//         cs.name AS client_name,
+
+//         ci.company_logo AS company_logo   -- ✅ CHANGE 1: logo column (real name)
+
+//       FROM estimates e
+
+//       LEFT JOIN projects p 
+//         ON p.id = e.project_id
+
+//       LEFT JOIN clients_suppliers cs 
+//         ON cs.id = e.client_id 
+//         AND cs.type = 'client'
+
+//       LEFT JOIN company_information ci    -- ✅ CHANGE 2: company master table
+//         ON 1 = 1                          -- ✅ CHANGE 3: single-row company table
+
+//       WHERE e.id = ?
+//     `, [id]);
+
+//     if (!row) {
+//       return res.status(404).json({ success: false, message: "Estimate not found" });
+//     }
+
+//     const lineItems = JSON.parse(row.line_items);
+
+//     res.json({
+//       success: true,
+//       data: {
+//         company_logo: row.company_logo,   // ✅ CHANGE 4: logo added to response
+
+//         estimate_no: row.estimate_no,
+//         estimate_date: row.estimate_date,
+//         client_name: row.client_name,
+
+//         project: {
+//           project_name: row.project_name,
+//           project_no: row.project_no
+//         },
+
+//         items: lineItems,
+
+//         summary: {
+//           subtotal: row.subtotal,
+//           vat_rate: row.vat_rate,
+//           vat_amount: row.vat_amount,
+//           total_amount: row.total_amount
+//         },
+
+//         notes: row.notes
+//       }
+//     });
+
+//   } catch (error) {
+//     res.status(500).json({ success: false, message: error.message });
+//   }
+// };
+
+export const getPdfDataById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const [[row]] = await pool.query(`
+      SELECT 
+        e.estimate_no,
+        e.estimate_date,
+        e.currency,
+        e.line_items,
+        e.subtotal,
+        e.vat_rate,
+        e.vat_amount,
+        e.total_amount,
+        e.notes,
+        e.currency,
+
+        p.project_name,
+        p.project_no,
+
+        cs.name AS client_name,
+        cs.address AS client_address,     -- ✅ existing column
+        cs.phone AS client_phone,         -- ✅ existing column
+
+        ci.company_logo AS company_logo ,  -- ✅ company logo
+        ci.company_name AS company_name   -- ✅ additional company info if needed
+      FROM estimates e
+
+      LEFT JOIN projects p 
+        ON p.id = e.project_id
+
+      LEFT JOIN clients_suppliers cs 
+        ON cs.id = e.client_id 
+        AND cs.type = 'client'
+
+      LEFT JOIN company_information ci 
+        ON 1 = 1                          -- ✅ single company row
+
+      WHERE e.id = ?
+    `, [id]);
+
+    if (!row) {
+      return res.status(404).json({ success: false, message: "Estimate not found" });
+    }
+
+    const lineItems = JSON.parse(row.line_items);
+
+    res.json({
+      success: true,
+      data: {
+        company_name:row.company_name,
+        company_logo: row.company_logo,
+
+        estimate_no: row.estimate_no,
+        estimate_date: row.estimate_date,
+
+        client: {
+          name: row.client_name,
+          address: row.client_address,
+          phone: row.client_phone
+        },
+
+        project: {
+          project_name: row.project_name,
+          project_no: row.project_no
+        },
+
+        items: lineItems,
+
+        summary: {
+          currency:row.currency,
+          subtotal: row.subtotal,
+          vat_rate: row.vat_rate,
+          vat_amount: row.vat_amount,
+          total_amount: row.total_amount
+        },
+
+        notes: row.notes
+      }
+    });
+
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
 
 
 
@@ -466,11 +627,36 @@ export const updateEstimate = async (req, res) => {
 };
 
 export const deleteEstimate = async (req, res) => {
+  const connection = await pool.getConnection();
   try {
     const { id } = req.params;
-    await pool.query("DELETE FROM estimates WHERE id = ?", [id]);
-    res.json({ success: true, message: "Estimate deleted successfully" });
+
+    await connection.beginTransaction();
+
+    // 1️⃣ Delete related purchase orders
+    await connection.query(
+      "DELETE FROM purchase_orders WHERE cost_estimation_id = ?",
+      [id]
+    );
+
+    // 2️⃣ Delete estimate
+    await connection.query(
+      "DELETE FROM estimates WHERE id = ?",
+      [id]
+    );
+
+    await connection.commit();
+
+    res.json({
+      success: true,
+      message: "Estimate deleted successfully"
+    });
+
   } catch (error) {
+    await connection.rollback();
     res.status(500).json({ message: error.message });
+  } finally {
+    connection.release();
   }
 };
+
