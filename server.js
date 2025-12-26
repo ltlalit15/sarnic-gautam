@@ -9,7 +9,7 @@ app.use(
   cors({
     origin: [
       process.env.FRONTEND_URL, 
-      "http://localhost:5173",
+   
       "https://sanric-project.netlify.app",
     ].filter(Boolean) ,
     credentials: true,
