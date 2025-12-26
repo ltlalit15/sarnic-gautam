@@ -43,7 +43,7 @@ export const createProject = async (req, res) => {
       project_description,
       project_requirements,
       budget,
-      currency
+      currency,
     } = req.body;
 
     if (!project_name) {
@@ -79,7 +79,7 @@ export const createProject = async (req, res) => {
         project_description || null,
         project_requirements ? JSON.stringify(project_requirements) : null,
         cleanBudget,
-        currency || null
+        currency || null,
       ]
     );
 
@@ -87,9 +87,8 @@ export const createProject = async (req, res) => {
       success: true,
       message: "Project created successfully",
       id: response.insertId,
-      project_no: nextProjectNo
+      project_no: nextProjectNo,
     });
-
   } catch (error) {
     console.error("Create Project Error:", error.message);
     res.status(500).json({ message: error.message });
@@ -98,15 +97,13 @@ export const createProject = async (req, res) => {
 
 export const getAllProjects = async (req, res) => {
   try {
-    const [rows] = await pool.query(
-      "SELECT * FROM projects ORDER BY id DESC"
-    );
+    const [rows] = await pool.query("SELECT * FROM projects ORDER BY id DESC");
 
-    const data = rows.map(p => ({
+    const data = rows.map((p) => ({
       ...p,
       project_requirements: p.project_requirements
         ? JSON.parse(p.project_requirements)
-        : []
+        : [],
     }));
 
     res.json({ success: true, data });
@@ -119,10 +116,9 @@ export const getProjectById = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const [[project]] = await pool.query(
-      "SELECT * FROM projects WHERE id=?",
-      [id]
-    );
+    const [[project]] = await pool.query("SELECT * FROM projects WHERE id=?", [
+      id,
+    ]);
 
     if (!project) {
       return res.status(404).json({ message: "Project not found" });
@@ -152,7 +148,7 @@ export const updateProject = async (req, res) => {
       project_description,
       project_requirements,
       budget,
-      currency
+      currency,
     } = req.body;
 
     // 🔹 Parse budget again on update
@@ -182,13 +178,13 @@ export const updateProject = async (req, res) => {
         project_requirements ? JSON.stringify(project_requirements) : null,
         cleanBudget,
         currency,
-        id
+        id,
       ]
     );
 
     res.json({
       success: true,
-      message: "Project updated successfully"
+      message: "Project updated successfully",
     });
   } catch (error) {
     console.error("Update Project Error:", error.message);
@@ -214,7 +210,6 @@ export const updateProject = async (req, res) => {
 //   }
 // };
 
-
 export const deleteProject = async (req, res) => {
   const connection = await pool.getConnection();
 
@@ -224,54 +219,38 @@ export const deleteProject = async (req, res) => {
     await connection.beginTransaction();
 
     // 1️⃣ Time logs (depends on jobs + project)
-    await connection.query(
-      "DELETE FROM time_work_logs WHERE project_id = ?",
-      [id]
-    );
+    await connection.query("DELETE FROM time_work_logs WHERE project_id = ?", [
+      id,
+    ]);
 
     // 2️⃣ Assign jobs
-    await connection.query(
-      "DELETE FROM assign_jobs WHERE project_id = ?",
-      [id]
-    );
+    await connection.query("DELETE FROM assign_jobs WHERE project_id = ?", [
+      id,
+    ]);
 
     // 3️⃣ Jobs
-    await connection.query(
-      "DELETE FROM jobs WHERE project_id = ?",
-      [id]
-    );
+    await connection.query("DELETE FROM jobs WHERE project_id = ?", [id]);
 
     // 4️⃣ Invoices
-    await connection.query(
-      "DELETE FROM invoices WHERE project_id = ?",
-      [id]
-    );
+    await connection.query("DELETE FROM invoices WHERE project_id = ?", [id]);
 
     // 5️⃣ Estimates
-    await connection.query(
-      "DELETE FROM estimates WHERE project_id = ?",
-      [id]
-    );
+    await connection.query("DELETE FROM estimates WHERE project_id = ?", [id]);
 
     // 6️⃣ Purchase Orders
-    await connection.query(
-      "DELETE FROM purchase_orders WHERE project_id = ?",
-      [id]
-    );
+    await connection.query("DELETE FROM purchase_orders WHERE project_id = ?", [
+      id,
+    ]);
 
     // 7️⃣ Finally delete project
-    await connection.query(
-      "DELETE FROM projects WHERE id = ?",
-      [id]
-    );
+    await connection.query("DELETE FROM projects WHERE id = ?", [id]);
 
     await connection.commit();
 
     res.json({
       success: true,
-      message: "Project deleted successfully"
+      message: "Project deleted successfully",
     });
-
   } catch (error) {
     await connection.rollback();
     res.status(500).json({ message: error.message });
@@ -279,7 +258,6 @@ export const deleteProject = async (req, res) => {
     connection.release();
   }
 };
-
 
 export const getProjectsByStatus = async (req, res) => {
   try {
@@ -290,11 +268,11 @@ export const getProjectsByStatus = async (req, res) => {
       [status]
     );
 
-    const data = rows.map(p => ({
+    const data = rows.map((p) => ({
       ...p,
       project_requirements: p.project_requirements
         ? JSON.parse(p.project_requirements)
-        : []
+        : [],
     }));
 
     res.json({ success: true, data });
@@ -317,9 +295,11 @@ export const getProjectOverviewById = async (req, res) => {
       `,
       [projectId]
     );
-      
+
     if (!project) {
-      return res.status(404).json({ success: false, message: "Project not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Project not found" });
     }
 
     /* ---------------- Jobs ---------------- */
@@ -330,6 +310,21 @@ export const getProjectOverviewById = async (req, res) => {
       FROM jobs
       WHERE project_id = ?
         AND job_status = 'Active'
+      `,
+      [projectId]
+    );
+
+    /* ---------------- Total Hours ---------------- */
+    const [[totalTime]] = await pool.query(
+      `
+      SELECT CONCAT(
+        FLOOR(SUM(TIME_TO_SEC(time) + TIME_TO_SEC(overtime)) / 3600),
+        ':',
+        LPAD(FLOOR(SUM(TIME_TO_SEC(time) + TIME_TO_SEC(overtime)) % 3600 / 60), 2, '0')
+      ) AS total_hours
+      FROM jobs j
+      LEFT JOIN time_work_logs twl ON twl.job_id = j.id
+      WHERE j.project_id = ?
       `,
       [projectId]
     );
@@ -380,45 +375,76 @@ export const getProjectOverviewById = async (req, res) => {
       [projectId]
     );
 
+    //     const [recentJobs] = await pool.query(
+    //   `
+    //   SELECT
+    //     CASE
+    //       WHEN job_status = 'Active' THEN 'Job in progress'
+    //       WHEN job_status = 'Completed' THEN 'Job completed'
+    //       ELSE 'Job updated'
+    //     END AS activity,
+    //     created_at
+    //   FROM jobs
+    //   WHERE project_id = ?
+    //   ORDER BY created_at DESC
+    //   LIMIT 2
+    //   `,
+    //   [projectId]
+    // );
 
-//     const [recentJobs] = await pool.query(
-//   `
-//   SELECT
-//     CASE
-//       WHEN job_status = 'Active' THEN 'Job in progress'
-//       WHEN job_status = 'Completed' THEN 'Job completed'
-//       ELSE 'Job updated'
-//     END AS activity,
-//     created_at
-//   FROM jobs
-//   WHERE project_id = ?
-//   ORDER BY created_at DESC
-//   LIMIT 2
-//   `,
-//   [projectId]
-// );
+    // const [recentPOs] = await pool.query(
+    //   `
+    //   SELECT
+    //     CASE
+    //       WHEN po_status = 'Draft' THEN 'Purchase order drafted'
+    //       WHEN po_status = 'Issued' THEN 'Purchase order issued'
+    //       ELSE 'Purchase order updated'
+    //     END AS activity,
+    //     created_at
+    //   FROM purchase_orders
+    //   WHERE project_id = ?
+    //   ORDER BY created_at DESC
+    //   LIMIT 1
+    //   `,
+    //   [projectId]
+    // );
 
-// const [recentPOs] = await pool.query(
-//   `
-//   SELECT
-//     CASE
-//       WHEN po_status = 'Draft' THEN 'Purchase order drafted'
-//       WHEN po_status = 'Issued' THEN 'Purchase order issued'
-//       ELSE 'Purchase order updated'
-//     END AS activity,
-//     created_at
-//   FROM purchase_orders
-//   WHERE project_id = ?
-//   ORDER BY created_at DESC
-//   LIMIT 1
-//   `,
-//   [projectId]
-// );
+    /* ---------------- Invoices ---------------- */
+    const [invoiceStats] = await pool.query(
+      `
+  SELECT 
+    currency,
+    COUNT(*) AS issued,
+    SUM(CASE WHEN invoice_status IN ('completed', 'received') THEN 1 ELSE 0 END) AS received,
+    IFNULL(SUM(CASE WHEN invoice_status IN ('completed', 'received') THEN total_amount ELSE 0 END), 0) AS total_value
+FROM invoices
+WHERE project_id = ?
+GROUP BY currency
+  `,
+      [projectId]
+    );
+
+    // Pick first currency if multiple currencies exist for backward compatibility
+    let purchase_orders = {
+      received: 0,
+      issued: 0,
+      total_value: "0.00",
+      currency: "USD",
+    };
+    if (invoiceStats.length > 0) {
+      const inv = invoiceStats[0];
+      purchase_orders = {
+        received: inv.received || 0,
+        issued: inv.issued || 0,
+        total_value: inv.total_value?.toFixed(2) || "0.00",
+        currency: inv.currency || "USD",
+      };
+    }
 
     const recentActivity = [...recentJobs, ...recentPOs]
       .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
       .slice(0, 3)
-      .map(a => a.activity);
+      .map((a) => a.activity);
 
     /* ---------------- Final Response ---------------- */
     res.json({
@@ -429,23 +455,16 @@ export const getProjectOverviewById = async (req, res) => {
         days_remaining: daysRemaining,
         due_date: project.expected_completion_date,
 
-        jobs_due_today: 0,          // ❌ column nahi hai
-        total_hours: "00:00",       // ❌ table nahi hai
+        jobs_due_today: 0, // ❌ column nahi hai
+        total_hours: totalTime.total_hours || "00:00",
 
-        purchase_orders: {
-          received: poStats.total_pos || 0, // UI ke liye reuse
-          issued: 0,                         // ❌ status column nahi
-          total_value: poStats.total_value || 0,
-          currency: project.currency || "GBP"
-        },
+        purchase_orders,
 
-        recent_activity: recentActivity
-      }
+        recent_activity: recentActivity,
+      },
     });
-
   } catch (error) {
     console.error("Project Overview Error:", error.message);
     res.status(500).json({ success: false, message: error.message });
   }
 };
-
