@@ -59,7 +59,6 @@ import { pool } from "../Config/dbConnect.js";
 //   }
 // };
 
-
 // export const createAssignJob = async (req, res) => {
 //   try {
 //     const {
@@ -172,7 +171,7 @@ export const createAssignJob = async (req, res) => {
       employee_id,
       production_id,
       task_description,
-      time_budget
+      time_budget,
     } = req.body;
 
     // --------------------------------
@@ -249,7 +248,7 @@ export const createAssignJob = async (req, res) => {
           admin_status,
           production_status,
           employee_status,
-          existing[0].id
+          existing[0].id,
         ]
       );
     } else {
@@ -278,7 +277,7 @@ export const createAssignJob = async (req, res) => {
           time_budget || null,
           admin_status,
           production_status,
-          employee_status
+          employee_status,
         ]
       );
     }
@@ -305,9 +304,8 @@ export const createAssignJob = async (req, res) => {
     // -----------------------------
     res.status(201).json({
       success: true,
-      message: "Job assigned successfully & jobs updated"
+      message: "Job assigned successfully & jobs updated",
     });
-
   } catch (error) {
     console.error("Assign Job Error:", error);
     res.status(500).json({ message: error.message });
@@ -340,18 +338,18 @@ export const productionAssignToEmployee = async (req, res) => {
     if (!Array.isArray(assign_job_ids) || !assign_job_ids.length) {
       return res.status(400).json({
         success: false,
-        message: "assign_job_ids array is required"
+        message: "assign_job_ids array is required",
       });
     }
 
     if (!employee_id) {
       return res.status(400).json({
         success: false,
-        message: "employee_id is required"
+        message: "employee_id is required",
       });
     }
 
-    const ids = assign_job_ids.map(id => Number(id)).filter(Boolean);
+    const ids = assign_job_ids.map((id) => Number(id)).filter(Boolean);
     const placeholders = ids.map(() => "?").join(",");
 
     /* 1️⃣ Update assign_jobs */
@@ -384,14 +382,13 @@ export const productionAssignToEmployee = async (req, res) => {
       success: true,
       message: "Jobs assigned to employee successfully",
       employee_id,
-      assign_job_ids: ids
+      assign_job_ids: ids,
     });
-
   } catch (error) {
     console.error(error);
     res.status(500).json({
       success: false,
-      message: "Server Error"
+      message: "Server Error",
     });
   }
 };
@@ -417,8 +414,7 @@ export const employeeCompleteJob = async (req, res) => {
       `
       UPDATE jobs
       SET 
-        job_status = 'complete',
-        assigned = 'Not Assigned'
+        job_status = 'in_progress'
       WHERE id = ?
       `,
       [job_id]
@@ -426,14 +422,13 @@ export const employeeCompleteJob = async (req, res) => {
 
     res.json({
       success: true,
-      message: "Job completed successfully"
+      message: "Job completed successfully",
     });
-
   } catch (error) {
     console.error(error);
     res.status(500).json({
       success: false,
-      message: "Server Error"
+      message: "Server Error",
     });
   }
 };
@@ -468,14 +463,13 @@ export const employeeRejectJob = async (req, res) => {
 
     res.json({
       success: true,
-      message: "Job rejected by employee"
+      message: "Job rejected by employee",
     });
-
   } catch (error) {
     console.error(error);
     res.status(500).json({
       success: false,
-      message: "Server Error"
+      message: "Server Error",
     });
   }
 };
@@ -515,10 +509,10 @@ export const employeeRejectJob = async (req, res) => {
 //     await connection.query(
 //       `
 //       UPDATE assign_jobs
-//       SET 
+//       SET
 //         production_status = 'complete',
 //         admin_status = 'complete'
-        
+
 //       WHERE id = ?
 //       `,
 //       [req.params.id]
@@ -531,7 +525,7 @@ export const employeeRejectJob = async (req, res) => {
 //     //   await connection.query(
 //     //     `
 //     //     UPDATE jobs
-//     //     SET 
+//     //     SET
 //     //       assigned = NULL,
 //     //       job_status = 'complete'
 //     //     WHERE id IN (${placeholders})
@@ -561,14 +555,83 @@ export const employeeRejectJob = async (req, res) => {
 //   }
 // };
 
+// export const productionCompleteJob = async (req, res) => {
+//   const connection = await pool.getConnection();
 
+//   try {
+//     await connection.beginTransaction();
+
+//     // 1️⃣ Fetch job_ids using assign_jobs.id
+//     const [assignRows] = await connection.query(
+//       `SELECT job_ids FROM assign_jobs WHERE id = ?`,
+//       [req.params.id]
+//     );
+
+//     if (!assignRows.length) {
+//       await connection.rollback();
+//       return res.status(404).json({
+//         success: false,
+//         message: "Assign job not found"
+//       });
+//     }
+
+//     // 2️⃣ SAFE parse job_ids (LONGTEXT → JSON)
+//     let jobIds = [];
+
+//     try {
+//       if (assignRows[0].job_ids) {
+//         jobIds =
+//           typeof assignRows[0].job_ids === "string"
+//             ? JSON.parse(assignRows[0].job_ids)
+//             : assignRows[0].job_ids;
+//       }
+//     } catch (e) {
+//       jobIds = [];
+//     }
+
+//     if (!Array.isArray(jobIds)) {
+//       jobIds = [];
+//     }
+
+//     // 3️⃣ Update ONLY assign_jobs (no jobs table update)
+//     await connection.query(
+//       `
+//       UPDATE assign_jobs
+//       SET
+//         production_status = 'complete',
+//         admin_status = 'complete'
+//       WHERE id = ?
+//       `,
+//       [req.params.id]
+//     );
+
+//     await connection.commit();
+
+//     res.json({
+//       success: true,
+//       message: "Production completed successfully"
+//     });
+
+//   } catch (error) {
+//     await connection.rollback();
+//     console.error(error);
+
+//     res.status(500).json({
+//       success: false,
+//       message: "Server Error"
+//     });
+
+//   } finally {
+//     connection.release();
+//   }
+// };
 export const productionCompleteJob = async (req, res) => {
   const connection = await pool.getConnection();
 
   try {
     await connection.beginTransaction();
 
-    // 1️⃣ Fetch job_ids using assign_jobs.id
+    // 1️⃣ Fetch job_ids from assign_jobs
     const [assignRows] = await connection.query(
       `SELECT job_ids FROM assign_jobs WHERE id = ?`,
       [req.params.id]
@@ -578,11 +641,11 @@ export const productionCompleteJob = async (req, res) => {
       await connection.rollback();
       return res.status(404).json({
         success: false,
-        message: "Assign job not found"
+        message: "Assign job not found",
       });
     }
 
-    // 2️⃣ SAFE parse job_ids (LONGTEXT → JSON)
+    // 2️⃣ Safely parse job_ids
     let jobIds = [];
 
     try {
@@ -596,11 +659,15 @@ export const productionCompleteJob = async (req, res) => {
       jobIds = [];
     }
 
-    if (!Array.isArray(jobIds)) {
-      jobIds = [];
+    if (!Array.isArray(jobIds) || jobIds.length === 0) {
+      await connection.rollback();
+      return res.status(400).json({
+        success: false,
+        message: "No jobs found to update",
+      });
     }
 
-    // 3️⃣ Update ONLY assign_jobs (no jobs table update)
+    // 3️⃣ Update assign_jobs status
     await connection.query(
       `
       UPDATE assign_jobs
@@ -612,27 +679,36 @@ export const productionCompleteJob = async (req, res) => {
       [req.params.id]
     );
 
+    // 4️⃣ Update jobs table (ONLY related jobs)
+    await connection.query(
+      `
+      UPDATE jobs
+      SET 
+        job_status = 'complete',
+        assigned = 'Not Assigned'
+      WHERE id IN (?)
+      `,
+      [jobIds]
+    );
+
     await connection.commit();
 
     res.json({
       success: true,
-      message: "Production completed successfully"
+      message: "Production completed successfully",
     });
-
   } catch (error) {
     await connection.rollback();
-    console.error(error);
+    console.error("Production Complete Error:", error);
 
     res.status(500).json({
       success: false,
-      message: "Server Error"
+      message: "Server Error",
     });
-
   } finally {
     connection.release();
   }
 };
-
 export const productionReturnJob = async (req, res) => {
   const connection = await pool.getConnection();
 
@@ -651,12 +727,12 @@ export const productionReturnJob = async (req, res) => {
     if (!Array.isArray(assignIds) || !assignIds.length) {
       return res.status(400).json({
         success: false,
-        message: "No assign job ids provided"
+        message: "No assign job ids provided",
       });
     }
 
     // ensure numbers
-    assignIds = assignIds.map(id => Number(id)).filter(Boolean);
+    assignIds = assignIds.map((id) => Number(id)).filter(Boolean);
 
     // 2️⃣ Fetch job_ids
     const placeholders = assignIds.map(() => "?").join(",");
@@ -670,7 +746,7 @@ export const productionReturnJob = async (req, res) => {
       await connection.rollback();
       return res.status(404).json({
         success: false,
-        message: "Assign job(s) not found"
+        message: "Assign job(s) not found",
       });
     }
 
@@ -725,22 +801,93 @@ export const productionReturnJob = async (req, res) => {
       success: true,
       message: "Production returned. Jobs marked as return & unassigned.",
       assignJobIds: assignIds,
-      affectedJobIds: allJobIds
+      affectedJobIds: allJobIds,
     });
-
   } catch (error) {
     await connection.rollback();
     console.error(error);
 
     res.status(500).json({
       success: false,
-      message: "Server Error"
+      message: "Server Error",
     });
-
   } finally {
     connection.release();
   }
 };
+
+export const productionReturnJobStatus = async (req, res) => {
+  const connection = await pool.getConnection();
+
+  try {
+    await connection.beginTransaction();
+
+    let assignIds = req.body?.ids;
+    if (!Array.isArray(assignIds) || !assignIds.length) {
+      if (req.params.id) assignIds = [Number(req.params.id)];
+    }
+
+    if (!Array.isArray(assignIds) || !assignIds.length) {
+      return res
+        .status(400)
+        .json({ success: false, message: "No assign job ids provided" });
+    }
+
+    assignIds = assignIds.map((id) => Number(id)).filter(Boolean);
+
+    const placeholders = assignIds.map(() => "?").join(",");
+    const [assignRows] = await connection.query(
+      `SELECT id, job_ids FROM assign_jobs WHERE id IN (${placeholders})`,
+      assignIds
+    );
+
+    if (!assignRows.length) {
+      await connection.rollback();
+      return res
+        .status(404)
+        .json({ success: false, message: "Assign job(s) not found" });
+    }
+
+    let allJobIds = [];
+    for (const row of assignRows) {
+      let jobIds = row.job_ids;
+      if (typeof jobIds === "string") jobIds = JSON.parse(jobIds);
+      if (Array.isArray(jobIds)) allJobIds.push(...jobIds);
+    }
+    allJobIds = [...new Set(allJobIds)];
+
+    // update assign_jobs
+    await connection.query(
+      `UPDATE assign_jobs SET production_status = 'return', admin_status = 'return' WHERE id IN (${placeholders})`,
+      assignIds
+    );
+
+    // update jobs
+    if (allJobIds.length > 0) {
+      const jobPlaceholders = allJobIds.map(() => "?").join(",");
+      await connection.query(
+        `UPDATE jobs SET job_status = 'return', assigned = 'Not Assigned' WHERE id IN (${jobPlaceholders})`,
+        allJobIds
+      );
+    }
+
+    await connection.commit();
+
+    res.json({
+      success: true,
+      message: "Jobs returned successfully",
+      assignJobIds: assignIds,
+      affectedJobIds: allJobIds,
+    });
+  } catch (error) {
+    await connection.rollback();
+    console.error(error);
+    res.status(500).json({ success: false, message: "Server Error" });
+  } finally {
+    connection.release();
+  }
+};
+
 export const productionRejectJob = async (req, res) => {
   const connection = await pool.getConnection();
 
@@ -759,11 +906,11 @@ export const productionRejectJob = async (req, res) => {
     if (!Array.isArray(assignIds) || !assignIds.length) {
       return res.status(400).json({
         success: false,
-        message: "No assign job ids provided"
+        message: "No assign job ids provided",
       });
     }
 
-    assignIds = assignIds.map(id => Number(id)).filter(Boolean);
+    assignIds = assignIds.map((id) => Number(id)).filter(Boolean);
 
     // 2️⃣ Fetch job_ids
     const placeholders = assignIds.map(() => "?").join(",");
@@ -777,7 +924,7 @@ export const productionRejectJob = async (req, res) => {
       await connection.rollback();
       return res.status(404).json({
         success: false,
-        message: "Assign job(s) not found"
+        message: "Assign job(s) not found",
       });
     }
 
@@ -832,18 +979,16 @@ export const productionRejectJob = async (req, res) => {
       success: true,
       message: "Production rejected successfully",
       assignJobIds: assignIds,
-      affectedJobIds: allJobIds
+      affectedJobIds: allJobIds,
     });
-
   } catch (error) {
     await connection.rollback();
     console.error(error);
 
     res.status(500).json({
       success: false,
-      message: "Server Error"
+      message: "Server Error",
     });
-
   } finally {
     connection.release();
   }
@@ -1137,7 +1282,7 @@ export const getJobsByEmployee = async (req, res) => {
     // =====================================
     const resultMap = {};
 
-    rows.forEach(row => {
+    rows.forEach((row) => {
       const key = row.id || `job-${row.job_id}`;
 
       if (!resultMap[key]) {
@@ -1155,7 +1300,7 @@ export const getJobsByEmployee = async (req, res) => {
                 production_status: row.production_status,
                 employee_status: row.employee_status,
                 created_at: row.created_at,
-                updated_at: row.updated_at
+                updated_at: row.updated_at,
               }
             : null,
 
@@ -1164,7 +1309,7 @@ export const getJobsByEmployee = async (req, res) => {
                 id: row.employee_user_id,
                 first_name: row.employee_first_name,
                 last_name: row.employee_last_name,
-                email: row.employee_email
+                email: row.employee_email,
               }
             : null,
 
@@ -1176,10 +1321,10 @@ export const getJobsByEmployee = async (req, res) => {
             status: row.project_status,
             priority: row.project_priority,
             start_date: row.start_date,
-            expected_completion_date: row.expected_completion_date
+            expected_completion_date: row.expected_completion_date,
           },
 
-          jobs: []
+          jobs: [],
         };
       }
 
@@ -1191,9 +1336,7 @@ export const getJobsByEmployee = async (req, res) => {
         pack_size: row.pack_size,
         ean_barcode: row.ean_barcode,
 
-        brand: row.brand_id
-          ? { id: row.brand_id, name: row.brand_name }
-          : null,
+        brand: row.brand_id ? { id: row.brand_id, name: row.brand_name } : null,
 
         sub_brand: row.sub_brand_id
           ? { id: row.sub_brand_id, name: row.sub_brand_name }
@@ -1216,17 +1359,16 @@ export const getJobsByEmployee = async (req, res) => {
               id: row.job_assigned_user_id,
               first_name: row.job_assigned_first_name,
               last_name: row.job_assigned_last_name,
-              email: row.job_assigned_email
+              email: row.job_assigned_email,
             }
-          : null
+          : null,
       });
     });
 
     res.json({
       success: true,
-      data: Object.values(resultMap)
+      data: Object.values(resultMap),
     });
-
   } catch (error) {
     console.error(error);
     res.status(500).json({ success: false, message: "Server Error" });
@@ -1327,8 +1469,7 @@ export const getJobsAllEmployee = async (req, res) => {
 
       ORDER BY 
         COALESCE(aj.created_at, j.created_at) DESC
-      `,
-     
+      `
     );
 
     // =====================================
@@ -1336,7 +1477,7 @@ export const getJobsAllEmployee = async (req, res) => {
     // =====================================
     const resultMap = {};
 
-    rows.forEach(row => {
+    rows.forEach((row) => {
       const key = row.id || `job-${row.job_id}`;
 
       if (!resultMap[key]) {
@@ -1354,7 +1495,7 @@ export const getJobsAllEmployee = async (req, res) => {
                 production_status: row.production_status,
                 employee_status: row.employee_status,
                 created_at: row.created_at,
-                updated_at: row.updated_at
+                updated_at: row.updated_at,
               }
             : null,
 
@@ -1363,7 +1504,7 @@ export const getJobsAllEmployee = async (req, res) => {
                 id: row.employee_user_id,
                 first_name: row.employee_first_name,
                 last_name: row.employee_last_name,
-                email: row.employee_email
+                email: row.employee_email,
               }
             : null,
 
@@ -1375,10 +1516,10 @@ export const getJobsAllEmployee = async (req, res) => {
             status: row.project_status,
             priority: row.project_priority,
             start_date: row.start_date,
-            expected_completion_date: row.expected_completion_date
+            expected_completion_date: row.expected_completion_date,
           },
 
-          jobs: []
+          jobs: [],
         };
       }
 
@@ -1390,9 +1531,7 @@ export const getJobsAllEmployee = async (req, res) => {
         pack_size: row.pack_size,
         ean_barcode: row.ean_barcode,
 
-        brand: row.brand_id
-          ? { id: row.brand_id, name: row.brand_name }
-          : null,
+        brand: row.brand_id ? { id: row.brand_id, name: row.brand_name } : null,
 
         sub_brand: row.sub_brand_id
           ? { id: row.sub_brand_id, name: row.sub_brand_name }
@@ -1415,17 +1554,16 @@ export const getJobsAllEmployee = async (req, res) => {
               id: row.job_assigned_user_id,
               first_name: row.job_assigned_first_name,
               last_name: row.job_assigned_last_name,
-              email: row.job_assigned_email
+              email: row.job_assigned_email,
             }
-          : null
+          : null,
       });
     });
 
     res.json({
       success: true,
-      data: Object.values(resultMap)
+      data: Object.values(resultMap),
     });
-
   } catch (error) {
     console.error(error);
     res.status(500).json({ success: false, message: "Server Error" });
@@ -1514,8 +1652,7 @@ export const getAllProductionAssignJobs = async (req, res) => {
 
    
       ORDER BY aj.created_at DESC
-      `,
-     
+      `
     );
 
     // =====================================
@@ -1523,7 +1660,7 @@ export const getAllProductionAssignJobs = async (req, res) => {
     // =====================================
     const resultMap = {};
 
-    rows.forEach(row => {
+    rows.forEach((row) => {
       if (!resultMap[row.id]) {
         resultMap[row.id] = {
           assign_job: {
@@ -1538,7 +1675,7 @@ export const getAllProductionAssignJobs = async (req, res) => {
             production_status: row.production_status,
             employee_status: row.employee_status,
             created_at: row.created_at,
-            updated_at: row.updated_at
+            updated_at: row.updated_at,
           },
 
           production_user: row.production_user_id
@@ -1546,7 +1683,7 @@ export const getAllProductionAssignJobs = async (req, res) => {
                 id: row.production_user_id,
                 first_name: row.production_first_name,
                 last_name: row.production_last_name,
-                email: row.production_email
+                email: row.production_email,
               }
             : null,
 
@@ -1558,10 +1695,10 @@ export const getAllProductionAssignJobs = async (req, res) => {
             status: row.project_status,
             priority: row.project_priority,
             start_date: row.start_date,
-            expected_completion_date: row.expected_completion_date
+            expected_completion_date: row.expected_completion_date,
           },
 
-          jobs: []
+          jobs: [],
         };
       }
 
@@ -1573,9 +1710,7 @@ export const getAllProductionAssignJobs = async (req, res) => {
         pack_size: row.pack_size,
         ean_barcode: row.ean_barcode,
 
-        brand: row.brand_id
-          ? { id: row.brand_id, name: row.brand_name }
-          : null,
+        brand: row.brand_id ? { id: row.brand_id, name: row.brand_name } : null,
 
         sub_brand: row.sub_brand_id
           ? { id: row.sub_brand_id, name: row.sub_brand_name }
@@ -1591,15 +1726,14 @@ export const getAllProductionAssignJobs = async (req, res) => {
 
         pack_type: row.pack_type_id
           ? { id: row.pack_type_id, name: row.pack_type_name }
-          : null
+          : null,
       });
     });
 
     res.json({
       success: true,
-      data: Object.values(resultMap)
+      data: Object.values(resultMap),
     });
-
   } catch (error) {
     console.error(error);
     res.status(500).json({ success: false, message: "Server Error" });
@@ -1662,28 +1796,28 @@ export const getAllProductionAssignJobs = async (req, res) => {
 
 //       FROM assign_jobs aj
 
-//       JOIN jobs j 
+//       JOIN jobs j
 //         ON JSON_CONTAINS(aj.job_ids, JSON_ARRAY(j.id))
 
-//       JOIN projects p 
+//       JOIN projects p
 //         ON j.project_id = p.id
 
-//       LEFT JOIN brand_names b 
+//       LEFT JOIN brand_names b
 //         ON j.brand_id = b.id
 
-//       LEFT JOIN sub_brands sb 
+//       LEFT JOIN sub_brands sb
 //         ON j.sub_brand_id = sb.id
 
-//       LEFT JOIN flavours f 
+//       LEFT JOIN flavours f
 //         ON j.flavour_id = f.id
 
-//       LEFT JOIN pack_codes pc 
+//       LEFT JOIN pack_codes pc
 //         ON j.pack_code_id = pc.id
 
-//       LEFT JOIN pack_types pt 
+//       LEFT JOIN pack_types pt
 //         ON j.pack_type_id = pt.id
 
-//       LEFT JOIN users u 
+//       LEFT JOIN users u
 //         ON aj.production_id = u.id
 
 //       WHERE aj.production_id = ?
@@ -1873,7 +2007,7 @@ export const getJobsByProduction = async (req, res) => {
     // =====================================
     const resultMap = {};
 
-    rows.forEach(row => {
+    rows.forEach((row) => {
       if (!resultMap[row.id]) {
         resultMap[row.id] = {
           assign_job: {
@@ -1888,7 +2022,7 @@ export const getJobsByProduction = async (req, res) => {
             production_status: row.production_status,
             employee_status: row.employee_status,
             created_at: row.created_at,
-            updated_at: row.updated_at
+            updated_at: row.updated_at,
           },
 
           production_user: row.production_user_id
@@ -1896,7 +2030,7 @@ export const getJobsByProduction = async (req, res) => {
                 id: row.production_user_id,
                 first_name: row.production_first_name,
                 last_name: row.production_last_name,
-                email: row.production_email
+                email: row.production_email,
               }
             : null,
 
@@ -1908,10 +2042,10 @@ export const getJobsByProduction = async (req, res) => {
             status: row.project_status,
             priority: row.project_priority,
             start_date: row.start_date,
-            expected_completion_date: row.expected_completion_date
+            expected_completion_date: row.expected_completion_date,
           },
 
-          jobs: []
+          jobs: [],
         };
       }
 
@@ -1923,9 +2057,7 @@ export const getJobsByProduction = async (req, res) => {
         pack_size: row.pack_size,
         ean_barcode: row.ean_barcode,
 
-        brand: row.brand_id
-          ? { id: row.brand_id, name: row.brand_name }
-          : null,
+        brand: row.brand_id ? { id: row.brand_id, name: row.brand_name } : null,
 
         sub_brand: row.sub_brand_id
           ? { id: row.sub_brand_id, name: row.sub_brand_name }
@@ -1941,15 +2073,14 @@ export const getJobsByProduction = async (req, res) => {
 
         pack_type: row.pack_type_id
           ? { id: row.pack_type_id, name: row.pack_type_name }
-          : null
+          : null,
       });
     });
 
     res.json({
       success: true,
-      data: Object.values(resultMap)
+      data: Object.values(resultMap),
     });
-
   } catch (error) {
     console.error(error);
     res.status(500).json({ success: false, message: "Server Error" });
@@ -1990,8 +2121,11 @@ export const getInProgressJobsByProduction = async (req, res) => {
 
         -- assign job
         aj.time_budget AS total_time,
+        aj.employee_status,          -- ✅ added
+        aj.admin_status,
+        aj.production_status,
 
-        -- production user
+        -- assigned employee
         CONCAT(u.first_name, ' ', u.last_name) AS assigned_to
 
       FROM assign_jobs aj
@@ -2018,7 +2152,7 @@ export const getInProgressJobsByProduction = async (req, res) => {
         ON j.pack_code_id = pc.id
 
       LEFT JOIN users u
-        ON j.assigned = u.id
+        ON aj.employee_id = u.id   -- ✅ corrected join
 
       WHERE 
         aj.production_id = ?
@@ -2033,17 +2167,17 @@ export const getInProgressJobsByProduction = async (req, res) => {
     res.json({
       success: true,
       count: rows.length,
-      data: rows
+      data: rows,
     });
-
   } catch (error) {
     console.error(error);
     res.status(500).json({
       success: false,
-      message: "Server Error"
+      message: "Server Error",
     });
   }
 };
+
 
 export const getAllInProgressJobsProduction = async (req, res) => {
   try {
@@ -2109,27 +2243,25 @@ export const getAllInProgressJobsProduction = async (req, res) => {
         AND j.job_status = 'in_progress'
 
       ORDER BY aj.created_at DESC
-      `,
-      
+      `
     );
 
     res.json({
       success: true,
       count: rows.length,
-      data: rows
+      data: rows,
     });
-
   } catch (error) {
     console.error(error);
     res.status(500).json({
       success: false,
-      message: "Server Error"
+      message: "Server Error",
     });
   }
 };
 
 export const getCompleteJobsByProduction = async (req, res) => {
- try {
+  try {
     const productionId = req.params.production_id;
 
     const [rows] = await pool.query(
@@ -2138,7 +2270,8 @@ export const getCompleteJobsByProduction = async (req, res) => {
         aj.id AS assign_job_id,
         j.id AS job_id,
         j.job_no,
-        j.job_status AS status,
+        j.job_status AS job_status,
+        aj.employee_status,
         j.priority,
         j.pack_size,
 
@@ -2162,35 +2295,21 @@ export const getCompleteJobsByProduction = async (req, res) => {
         CONCAT(u.first_name, ' ', u.last_name) AS assigned_to
 
       FROM assign_jobs aj
-
       JOIN jobs j
         ON JSON_CONTAINS(aj.job_ids, JSON_ARRAY(j.id))
-
       JOIN projects p
         ON j.project_id = p.id
-
-      LEFT JOIN brand_names b
-        ON j.brand_id = b.id
-
-      LEFT JOIN sub_brands sb
-        ON j.sub_brand_id = sb.id
-
-      LEFT JOIN flavours f
-        ON j.flavour_id = f.id
-
-      LEFT JOIN pack_types pt
-        ON j.pack_type_id = pt.id
-
-      LEFT JOIN pack_codes pc
-        ON j.pack_code_id = pc.id
-
-      LEFT JOIN users u
-        ON aj.employee_id = u.id
+      LEFT JOIN brand_names b ON j.brand_id = b.id
+      LEFT JOIN sub_brands sb ON j.sub_brand_id = sb.id
+      LEFT JOIN flavours f ON j.flavour_id = f.id
+      LEFT JOIN pack_types pt ON j.pack_type_id = pt.id
+      LEFT JOIN pack_codes pc ON j.pack_code_id = pc.id
+      LEFT JOIN users u ON aj.employee_id = u.id
 
       WHERE 
         aj.production_id = ?
         AND aj.employee_id IS NOT NULL
-        AND j.job_status = 'complete'
+        AND aj.employee_status = 'complete'
 
       ORDER BY aj.created_at DESC
       `,
@@ -2200,29 +2319,27 @@ export const getCompleteJobsByProduction = async (req, res) => {
     res.json({
       success: true,
       count: rows.length,
-      data: rows
+      data: rows,
     });
-
   } catch (error) {
     console.error(error);
     res.status(500).json({
       success: false,
-      message: "Server Error"
+      message: "Server Error",
     });
   }
 };
 
 export const getAllCompleteJobsProduction = async (req, res) => {
- try {
-    // const productionId = req.params.production_id;
-
+  try {
     const [rows] = await pool.query(
       `
       SELECT
         aj.id AS assign_job_id,
         j.id AS job_id,
         j.job_no,
-        j.job_status AS status,
+        j.job_status AS job_status,
+        aj.employee_status,
         j.priority,
         j.pack_size,
 
@@ -2246,54 +2363,39 @@ export const getAllCompleteJobsProduction = async (req, res) => {
         CONCAT(u.first_name, ' ', u.last_name) AS assigned_to
 
       FROM assign_jobs aj
-
       JOIN jobs j
         ON JSON_CONTAINS(aj.job_ids, JSON_ARRAY(j.id))
-
       JOIN projects p
         ON j.project_id = p.id
-
-      LEFT JOIN brand_names b
-        ON j.brand_id = b.id
-
-      LEFT JOIN sub_brands sb
-        ON j.sub_brand_id = sb.id
-
-      LEFT JOIN flavours f
-        ON j.flavour_id = f.id
-
-      LEFT JOIN pack_types pt
-        ON j.pack_type_id = pt.id
-
-      LEFT JOIN pack_codes pc
-        ON j.pack_code_id = pc.id
-
-      LEFT JOIN users u
-        ON aj.employee_id = u.id
+      LEFT JOIN brand_names b ON j.brand_id = b.id
+      LEFT JOIN sub_brands sb ON j.sub_brand_id = sb.id
+      LEFT JOIN flavours f ON j.flavour_id = f.id
+      LEFT JOIN pack_types pt ON j.pack_type_id = pt.id
+      LEFT JOIN pack_codes pc ON j.pack_code_id = pc.id
+      LEFT JOIN users u ON aj.employee_id = u.id
 
       WHERE 
-         aj.employee_id IS NOT NULL
-        AND j.job_status = 'complete'
+        aj.employee_id IS NOT NULL
+        AND aj.employee_status = 'complete'
 
       ORDER BY aj.created_at DESC
       `
-      
     );
 
     res.json({
       success: true,
       count: rows.length,
-      data: rows
+      data: rows,
     });
-
   } catch (error) {
     console.error(error);
     res.status(500).json({
       success: false,
-      message: "Server Error"
+      message: "Server Error",
     });
   }
 };
+
 
 export const getRejectJobsByProduction = async (req, res) => {
   try {
@@ -2367,14 +2469,13 @@ export const getRejectJobsByProduction = async (req, res) => {
     res.json({
       success: true,
       count: rows.length,
-      data: rows
+      data: rows,
     });
-
   } catch (error) {
     console.error(error);
     res.status(500).json({
       success: false,
-      message: "Server Error"
+      message: "Server Error",
     });
   }
 };
@@ -2451,14 +2552,13 @@ export const getAllRejectJobsProduction = async (req, res) => {
     res.json({
       success: true,
       count: rows.length,
-      data: rows
+      data: rows,
     });
-
   } catch (error) {
     console.error(error);
     res.status(500).json({
       success: false,
-      message: "Server Error"
+      message: "Server Error",
     });
   }
 };

@@ -12,7 +12,7 @@ export const createJob = async (req, res) => {
       pack_code_id,
       pack_size,
       priority,
-      ean_barcode
+      ean_barcode,
     } = req.body;
 
     if (!project_id) {
@@ -66,7 +66,7 @@ export const createJob = async (req, res) => {
         pack_size || null,
         priority ? priority.toLowerCase() : "medium",
         ean_barcode || null,
-        "Active"
+        "Active",
       ]
     );
 
@@ -77,14 +77,42 @@ export const createJob = async (req, res) => {
       job_no: nextJobNo,
       project_no: project.project_no,
       project_name: finalProjectName,
-      job_status: "Active"
+      job_status: "Active",
     });
-
   } catch (error) {
     console.error("Create Job Error:", error);
     res.status(500).json({ message: error.message });
   }
 };
+
+// export const getAllJobs = async (req, res) => {
+//   try {
+//     const [rows] = await pool.query(`
+//       SELECT
+//         j.*,
+//         p.project_no,
+//         p.project_name AS main_project_name,
+//         b.name AS brand_name,
+//         sb.name AS sub_brand_name,
+//         f.name AS flavour_name,
+//         pt.name AS pack_type_name,
+//         pc.name AS pack_code_name
+//       FROM jobs j
+//       LEFT JOIN projects p ON j.project_id = p.id
+//       LEFT JOIN brand_names b ON j.brand_id = b.id
+//       LEFT JOIN sub_brands sb ON j.sub_brand_id = sb.id
+//       LEFT JOIN flavours f ON j.flavour_id = f.id
+//       LEFT JOIN pack_types pt ON j.pack_type_id = pt.id
+//       LEFT JOIN pack_codes pc ON j.pack_code_id = pc.id
+//       ORDER BY j.id DESC
+//     `);
+
+//     res.json({ success: true, data: rows });
+//   } catch (error) {
+//     console.error("Get Jobs Error:", error);
+//     res.status(500).json({ message: error.message });
+//   }
+// };
 
 export const getAllJobs = async (req, res) => {
   try {
@@ -97,7 +125,29 @@ export const getAllJobs = async (req, res) => {
         sb.name AS sub_brand_name,
         f.name AS flavour_name,
         pt.name AS pack_type_name,
-        pc.name AS pack_code_name
+        pc.name AS pack_code_name,
+
+        -- total time per job (HH:MM, supports >24h)
+        CONCAT(
+          FLOOR(
+            (
+              COALESCE(SUM(TIME_TO_SEC(twl.time)), 0) +
+              COALESCE(SUM(TIME_TO_SEC(twl.overtime)), 0)
+            ) / 3600
+          ),
+          ':',
+          LPAD(
+            FLOOR(
+              (
+                COALESCE(SUM(TIME_TO_SEC(twl.time)), 0) +
+                COALESCE(SUM(TIME_TO_SEC(twl.overtime)), 0)
+              ) % 3600 / 60
+            ),
+            2,
+            '0'
+          )
+        ) AS total_time
+
       FROM jobs j
       LEFT JOIN projects p ON j.project_id = p.id
       LEFT JOIN brand_names b ON j.brand_id = b.id
@@ -105,6 +155,9 @@ export const getAllJobs = async (req, res) => {
       LEFT JOIN flavours f ON j.flavour_id = f.id
       LEFT JOIN pack_types pt ON j.pack_type_id = pt.id
       LEFT JOIN pack_codes pc ON j.pack_code_id = pc.id
+      LEFT JOIN time_work_logs twl ON twl.job_id = j.id
+
+      GROUP BY j.id
       ORDER BY j.id DESC
     `);
 
@@ -119,7 +172,8 @@ export const getJobById = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const [[job]] = await pool.query(`
+    const [[job]] = await pool.query(
+      `
       SELECT
         j.*,
         p.project_no,
@@ -137,11 +191,30 @@ export const getJobById = async (req, res) => {
       LEFT JOIN pack_types pt ON j.pack_type_id = pt.id
       LEFT JOIN pack_codes pc ON j.pack_code_id = pc.id
       WHERE j.id = ?
-    `, [id]);
+    `,
+      [id]
+    );
 
     if (!job) {
       return res.status(404).json({ message: "Job not found" });
     }
+    const [[timeResult]] = await pool.query(
+      `
+      SELECT
+        DATE_FORMAT(
+          SEC_TO_TIME(
+            COALESCE(SUM(TIME_TO_SEC(time)), 0) +
+            COALESCE(SUM(TIME_TO_SEC(overtime)), 0)
+          ),
+          '%H:%i'
+        ) AS total_time
+      FROM time_work_logs
+      WHERE job_id = ?
+    `,
+      [id]
+    );
+
+    job.total_time = timeResult.total_time || "00:00";
 
     res.json({ success: true, data: job });
   } catch (error) {
@@ -179,8 +252,6 @@ export const getJobById = async (req, res) => {
 //     res.status(500).json({ message: error.message });
 //   }
 // };
-
-
 
 // export const getJobsByProjectId = async (req, res) => {
 //   try {
@@ -268,11 +339,76 @@ export const getJobById = async (req, res) => {
 //     res.status(500).json({ message: error.message });
 //   }
 // };
+// export const getJobsByProjectId = async (req, res) => {
+//   try {
+//     const { projectId } = req.params;
+
+//     const [rows] = await pool.query(
+//       `
+//       SELECT
+//         j.*,
+//         p.project_no,
+//         p.project_name AS main_project_name,
+//         b.name AS brand_name,
+//         sb.name AS sub_brand_name,
+//         f.name AS flavour_name,
+//         pt.name AS pack_type_name,
+//         pc.name AS pack_code_name,
+
+//         aj.id AS assign_id,
+//         aj.production_status,
+//         aj.admin_status,
+//         aj.employee_status,
+
+//         pu.id AS assigned_user_id,
+
+//         -- 🔁 CHANGED: assigned_name logic (production override)
+//         CASE
+//           WHEN aj.production_id IS NOT NULL
+//             THEN CONCAT(prod.first_name, ' ', prod.last_name)
+//           ELSE CONCAT(pu.first_name, ' ', pu.last_name)
+//         END AS assigned_name
+
+//       FROM jobs j
+//       LEFT JOIN projects p ON j.project_id = p.id
+//       LEFT JOIN brand_names b ON j.brand_id = b.id
+//       LEFT JOIN sub_brands sb ON j.sub_brand_id = sb.id
+//       LEFT JOIN flavours f ON j.flavour_id = f.id
+//       LEFT JOIN pack_types pt ON j.pack_type_id = pt.id
+//       LEFT JOIN pack_codes pc ON j.pack_code_id = pc.id
+
+//       LEFT JOIN assign_jobs aj
+//         ON aj.id = (
+//           SELECT aj2.id
+//           FROM assign_jobs aj2
+//           WHERE JSON_CONTAINS(aj2.job_ids, JSON_ARRAY(j.id))
+//             AND aj2.project_id = j.project_id
+//           ORDER BY aj2.created_at DESC
+//           LIMIT 1
+//         )
+
+//       LEFT JOIN users pu ON pu.id = j.assigned
+
+//       -- 🆕 ADDED: production user join (required for override)
+//       LEFT JOIN users prod ON prod.id = aj.production_id
+
+//       WHERE j.project_id = ?
+//       ORDER BY j.id DESC
+//     `,
+//       [projectId]
+//     );
+
+//     res.json({ success: true, data: rows });
+//   } catch (error) {
+//     res.status(500).json({ message: error.message });
+//   }
+// };
 export const getJobsByProjectId = async (req, res) => {
   try {
     const { projectId } = req.params;
 
-    const [rows] = await pool.query(`
+    const [rows] = await pool.query(
+      `
       SELECT
         j.*,
         p.project_no,
@@ -283,19 +419,40 @@ export const getJobsByProjectId = async (req, res) => {
         pt.name AS pack_type_name,
         pc.name AS pack_code_name,
 
-        aj.id AS assign_id,
-        aj.production_status,
-        aj.admin_status,
-        aj.employee_status,
+        MAX(aj.id) AS assign_id,
+        MAX(aj.production_status) AS production_status,
+        MAX(aj.admin_status) AS admin_status,
+        MAX(aj.employee_status) AS employee_status,
 
-        pu.id AS assigned_user_id,
+        MAX(pu.id) AS assigned_user_id,
 
-        -- 🔁 CHANGED: assigned_name logic (production override)
+        -- assigned name (production override)
         CASE
-          WHEN aj.production_id IS NOT NULL
-            THEN CONCAT(prod.first_name, ' ', prod.last_name)
-          ELSE CONCAT(pu.first_name, ' ', pu.last_name)
-        END AS assigned_name
+          WHEN MAX(aj.production_id) IS NOT NULL
+            THEN CONCAT(MAX(prod.first_name), ' ', MAX(prod.last_name))
+          ELSE CONCAT(MAX(pu.first_name), ' ', MAX(pu.last_name))
+        END AS assigned_name,
+
+        -- ✅ TOTAL TIME PER JOB (HH:MM, supports >24h)
+        CONCAT(
+          FLOOR(
+            (
+              COALESCE(SUM(TIME_TO_SEC(twl.time)), 0) +
+              COALESCE(SUM(TIME_TO_SEC(twl.overtime)), 0)
+            ) / 3600
+          ),
+          ':',
+          LPAD(
+            FLOOR(
+              (
+                COALESCE(SUM(TIME_TO_SEC(twl.time)), 0) +
+                COALESCE(SUM(TIME_TO_SEC(twl.overtime)), 0)
+              ) % 3600 / 60
+            ),
+            2,
+            '0'
+          )
+        ) AS total_time
 
       FROM jobs j
       LEFT JOIN projects p ON j.project_id = p.id
@@ -316,16 +473,19 @@ export const getJobsByProjectId = async (req, res) => {
         )
 
       LEFT JOIN users pu ON pu.id = j.assigned
-
-      -- 🆕 ADDED: production user join (required for override)
       LEFT JOIN users prod ON prod.id = aj.production_id
 
+      -- 🆕 join time logs
+      LEFT JOIN time_work_logs twl ON twl.job_id = j.id
+
       WHERE j.project_id = ?
+      GROUP BY j.id
       ORDER BY j.id DESC
-    `, [projectId]);
+      `,
+      [projectId]
+    );
 
     res.json({ success: true, data: rows });
-
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -344,7 +504,7 @@ export const updateJob = async (req, res) => {
       pack_size,
       priority,
       ean_barcode,
-      job_status
+      job_status,
     } = req.body;
 
     await pool.query(
@@ -369,7 +529,7 @@ export const updateJob = async (req, res) => {
         priority ? priority.toLowerCase() : "medium",
         ean_barcode || null,
         job_status || "Active",
-        id
+        id,
       ]
     );
 
@@ -401,10 +561,9 @@ export const deleteJob = async (req, res) => {
     await connection.beginTransaction();
 
     // 1️⃣ Delete time logs for this job
-    await connection.query(
-      "DELETE FROM time_work_logs WHERE job_id = ?",
-      [jobId]
-    );
+    await connection.query("DELETE FROM time_work_logs WHERE job_id = ?", [
+      jobId,
+    ]);
 
     // 2️⃣ Fetch assign_jobs that contain this job_id
     const [assignJobs] = await connection.query(
@@ -427,13 +586,12 @@ export const deleteJob = async (req, res) => {
         .replace("]", "")
         .split(",")
         .map(Number)
-        .filter(jid => jid !== jobId);
+        .filter((jid) => jid !== jobId);
 
       if (jobIdsArray.length === 0) {
-        await connection.query(
-          "DELETE FROM assign_jobs WHERE id = ?",
-          [row.id]
-        );
+        await connection.query("DELETE FROM assign_jobs WHERE id = ?", [
+          row.id,
+        ]);
       } else {
         await connection.query(
           "UPDATE assign_jobs SET job_ids = ? WHERE id = ?",
@@ -442,7 +600,7 @@ export const deleteJob = async (req, res) => {
       }
     }
 
-   const [jobDeleteResult] = await connection.query(
+    const [jobDeleteResult] = await connection.query(
       "DELETE FROM jobs WHERE id = ?",
       [jobId]
     );
@@ -455,9 +613,8 @@ export const deleteJob = async (req, res) => {
 
     res.json({
       success: true,
-      message: "Job deleted successfully"
+      message: "Job deleted successfully",
     });
-
   } catch (error) {
     await connection.rollback();
     console.error("Delete Job Error:", error);
@@ -496,13 +653,13 @@ export const deleteJob = async (req, res) => {
 //         u.last_name AS employee_last_name
 
 //       FROM assign_jobs aj
-//       LEFT JOIN jobs j 
+//       LEFT JOIN jobs j
 //         ON FIND_IN_SET(j.id, REPLACE(REPLACE(aj.job_ids, '[', ''), ']', ''))
 
-//       LEFT JOIN projects p 
+//       LEFT JOIN projects p
 //         ON p.id = aj.project_id
 
-//       LEFT JOIN users u 
+//       LEFT JOIN users u
 //         ON u.id = aj.employee_id
 
 //       WHERE aj.production_id = ?
@@ -530,7 +687,8 @@ export const getJobHistoryByProductionId = async (req, res) => {
   try {
     const { productionId } = req.params;
 
-    const [rows] = await pool.query(`
+    const [rows] = await pool.query(
+      `
       SELECT
         j.job_no                                AS jobNo,
         p.project_name                         AS projectName,
@@ -572,22 +730,25 @@ export const getJobHistoryByProductionId = async (req, res) => {
 
       WHERE aj.production_id = ?
       ORDER BY p.expected_completion_date ASC
-    `, [productionId]);
+    `,
+      [productionId]
+    );
 
     res.json({ success: true, data: rows });
-
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: "Failed to fetch job history" });
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to fetch job history" });
   }
 };
-
 
 export const getJobHistoryByEmployeeId = async (req, res) => {
   try {
     const { employeeId } = req.params;
 
-    const [rows] = await pool.query(`
+    const [rows] = await pool.query(
+      `
       SELECT
         j.job_no                                AS jobNo,
         p.project_name                         AS projectName,
@@ -621,16 +782,16 @@ export const getJobHistoryByEmployeeId = async (req, res) => {
 
       WHERE aj.employee_id = ?
       ORDER BY p.expected_completion_date ASC
-    `, [employeeId]);
+    `,
+      [employeeId]
+    );
 
     res.json({ success: true, data: rows });
-
   } catch (err) {
     console.error(err);
     res.status(500).json({
       success: false,
-      message: "Failed to fetch employee job history"
+      message: "Failed to fetch employee job history",
     });
   }
 };
-
