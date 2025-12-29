@@ -120,7 +120,7 @@ export const createEstimate = async (req, res) => {
         estimate_date,
         valid_until || null,
         currency,
-        ce_status || "Draft",
+        ce_status ,
         ce_po_status || "pending",
         ce_invoice_status || "pending",
         statusFlags.to_be_invoiced,
@@ -254,7 +254,6 @@ export const getEstimatesByProjectId = async (req, res) => {
 };
 
 
-
 // export const getAllEstimates = async (req, res) => {
 //   try {
 //     const [rows] = await pool.query(`
@@ -276,9 +275,16 @@ export const getEstimatesByProjectId = async (req, res) => {
 //         row.ce_invoice_status
 //       );
 
+//       // 🔥 STATUS OVERRIDE (GET LEVEL ONLY)
+//       const computedStatus =
+//         row.ce_invoice_status === "received"
+//           ? "Inactive"
+//           : "Draft";
+
 //       return {
 //         ...row,
-//         ...flags, // 👈 override flags here
+//         ce_status: computedStatus,   // 👈 override here
+//         ...flags,
 //         line_items: row.line_items ? JSON.parse(row.line_items) : []
 //       };
 //     });
@@ -296,7 +302,6 @@ export const getEstimatesByProjectId = async (req, res) => {
 // };
 
 
-
 export const getAllEstimates = async (req, res) => {
   try {
     const [rows] = await pool.query(`
@@ -308,27 +313,23 @@ export const getAllEstimates = async (req, res) => {
       FROM estimates e
       LEFT JOIN projects p ON p.id = e.project_id
       LEFT JOIN clients_suppliers cs 
-        ON cs.id = e.client_id AND cs.type = 'client'
+        ON cs.id = e.client_id 
+        AND cs.type = 'client'
       ORDER BY e.id DESC
     `);
 
     const data = rows.map(row => {
       const flags = calculateInvoiceFlags(
         row.ce_po_status,
-        row.ce_invoice_status
+        row.ce_invoice_status // 👈 untouched
       );
 
-      // 🔥 STATUS OVERRIDE (GET LEVEL ONLY)
-      const computedStatus =
-        row.ce_invoice_status === "received"
-          ? "Inactive"
-          : "Draft";
-
       return {
-        ...row,
-        ce_status: computedStatus,   // 👈 override here
+        ...row, // 👈 ce_status DB se jaisa hai waisa hi aayega
         ...flags,
-        line_items: row.line_items ? JSON.parse(row.line_items) : []
+        line_items: row.line_items
+          ? JSON.parse(row.line_items)
+          : []
       };
     });
 
@@ -346,82 +347,6 @@ export const getAllEstimates = async (req, res) => {
 
 
 
-
-// export const getPdfDataById = async (req, res) => {
-//   try {
-//     const { id } = req.params;
-
-//     const [[row]] = await pool.query(`
-//       SELECT 
-//         e.estimate_no,
-//         e.estimate_date,
-//         e.currency,
-//         e.line_items,
-//         e.subtotal,
-//         e.vat_rate,
-//         e.vat_amount,
-//         e.total_amount,
-//         e.notes,
-
-//         p.project_name,
-//         p.project_no,
-
-//         cs.name AS client_name,
-
-//         ci.company_logo AS company_logo   -- ✅ CHANGE 1: logo column (real name)
-
-//       FROM estimates e
-
-//       LEFT JOIN projects p 
-//         ON p.id = e.project_id
-
-//       LEFT JOIN clients_suppliers cs 
-//         ON cs.id = e.client_id 
-//         AND cs.type = 'client'
-
-//       LEFT JOIN company_information ci    -- ✅ CHANGE 2: company master table
-//         ON 1 = 1                          -- ✅ CHANGE 3: single-row company table
-
-//       WHERE e.id = ?
-//     `, [id]);
-
-//     if (!row) {
-//       return res.status(404).json({ success: false, message: "Estimate not found" });
-//     }
-
-//     const lineItems = JSON.parse(row.line_items);
-
-//     res.json({
-//       success: true,
-//       data: {
-//         company_logo: row.company_logo,   // ✅ CHANGE 4: logo added to response
-
-//         estimate_no: row.estimate_no,
-//         estimate_date: row.estimate_date,
-//         client_name: row.client_name,
-
-//         project: {
-//           project_name: row.project_name,
-//           project_no: row.project_no
-//         },
-
-//         items: lineItems,
-
-//         summary: {
-//           subtotal: row.subtotal,
-//           vat_rate: row.vat_rate,
-//           vat_amount: row.vat_amount,
-//           total_amount: row.total_amount
-//         },
-
-//         notes: row.notes
-//       }
-//     });
-
-//   } catch (error) {
-//     res.status(500).json({ success: false, message: error.message });
-//   }
-// };
 
 export const getPdfDataById = async (req, res) => {
   try {

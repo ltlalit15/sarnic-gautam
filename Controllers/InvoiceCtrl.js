@@ -41,7 +41,7 @@ const calculateInvoicePaymentFlags = (invoice_status, payment_status) => {
   let to_be_paid = false;
   let paid = false;
 
-  const iStatus = invoice_status || "Draft";
+  const iStatus = invoice_status ;
   const pStatus = payment_status || "Unpaid";
 
   if (iStatus === "Active" && pStatus === "Unpaid") {
@@ -155,7 +155,7 @@ export const createInvoice = async (req, res) => {
         due_date || null,
         currency,
         document_type || "Tax Invoice",
-        invoice_status || "Draft",
+        invoice_status,
         payment_status || "Unpaid",
         paymentFlags.to_be_paid,
         paymentFlags.paid,
@@ -802,7 +802,7 @@ export const updateInvoice = async (req, res) => {
         due_date,
         currency,
         document_type,
-        invoice_status || "Draft",
+        invoice_status,
         payment_status || "Unpaid",
         flags.to_be_paid,
         flags.paid,

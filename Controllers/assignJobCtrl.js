@@ -1194,6 +1194,7 @@ export const getJobsByEmployee = async (req, res) => {
         j.pack_size,
         j.ean_barcode,
         j.project_id,
+        j.pack_code,
 
         -- project
         p.id AS project_id,
@@ -1216,10 +1217,6 @@ export const getJobsByEmployee = async (req, res) => {
         -- flavour
         f.id AS flavour_id,
         f.name AS flavour_name,
-
-        -- pack code
-        pc.id AS pack_code_id,
-        pc.name AS pack_code_name,
 
         -- pack type
         pt.id AS pack_type_id,
@@ -1255,8 +1252,7 @@ export const getJobsByEmployee = async (req, res) => {
       LEFT JOIN flavours f
         ON j.flavour_id = f.id
 
-      LEFT JOIN pack_codes pc
-        ON j.pack_code_id = pc.id
+  
 
       LEFT JOIN pack_types pt
         ON j.pack_type_id = pt.id
@@ -1346,9 +1342,7 @@ export const getJobsByEmployee = async (req, res) => {
           ? { id: row.flavour_id, name: row.flavour_name }
           : null,
 
-        pack_code: row.pack_code_id
-          ? { id: row.pack_code_id, name: row.pack_code_name }
-          : null,
+      
 
         pack_type: row.pack_type_id
           ? { id: row.pack_type_id, name: row.pack_type_name }
@@ -1392,6 +1386,7 @@ export const getJobsAllEmployee = async (req, res) => {
         j.pack_size,
         j.ean_barcode,
         j.project_id,
+        j.pack_code,
 
         -- project
         p.id AS project_id,
@@ -1415,9 +1410,7 @@ export const getJobsAllEmployee = async (req, res) => {
         f.id AS flavour_id,
         f.name AS flavour_name,
 
-        -- pack code
-        pc.id AS pack_code_id,
-        pc.name AS pack_code_name,
+      
 
         -- pack type
         pt.id AS pack_type_id,
@@ -1453,8 +1446,7 @@ export const getJobsAllEmployee = async (req, res) => {
       LEFT JOIN flavours f
         ON j.flavour_id = f.id
 
-      LEFT JOIN pack_codes pc
-        ON j.pack_code_id = pc.id
+   
 
       LEFT JOIN pack_types pt
         ON j.pack_type_id = pt.id
@@ -1541,9 +1533,7 @@ export const getJobsAllEmployee = async (req, res) => {
           ? { id: row.flavour_id, name: row.flavour_name }
           : null,
 
-        pack_code: row.pack_code_id
-          ? { id: row.pack_code_id, name: row.pack_code_name }
-          : null,
+      
 
         pack_type: row.pack_type_id
           ? { id: row.pack_type_id, name: row.pack_type_name }
@@ -1610,9 +1600,7 @@ export const getAllProductionAssignJobs = async (req, res) => {
         f.id AS flavour_id,
         f.name AS flavour_name,
 
-        -- pack code
-        pc.id AS pack_code_id,
-        pc.name AS pack_code_name,
+       
 
         -- pack type
         pt.id AS pack_type_id,
@@ -1641,8 +1629,7 @@ export const getAllProductionAssignJobs = async (req, res) => {
       LEFT JOIN flavours f 
         ON j.flavour_id = f.id
 
-      LEFT JOIN pack_codes pc 
-        ON j.pack_code_id = pc.id
+     
 
       LEFT JOIN pack_types pt 
         ON j.pack_type_id = pt.id
@@ -1720,9 +1707,7 @@ export const getAllProductionAssignJobs = async (req, res) => {
           ? { id: row.flavour_id, name: row.flavour_name }
           : null,
 
-        pack_code: row.pack_code_id
-          ? { id: row.pack_code_id, name: row.pack_code_name }
-          : null,
+  
 
         pack_type: row.pack_type_id
           ? { id: row.pack_type_id, name: row.pack_type_name }
@@ -1931,6 +1916,7 @@ export const getJobsByProduction = async (req, res) => {
         j.pack_size,
         j.ean_barcode,
         j.project_id,
+        j.pack_code,
 
         -- project
         p.id AS project_id,
@@ -1954,9 +1940,7 @@ export const getJobsByProduction = async (req, res) => {
         f.id AS flavour_id,
         f.name AS flavour_name,
 
-        -- pack code
-        pc.id AS pack_code_id,
-        pc.name AS pack_code_name,
+    
 
         -- pack type
         pt.id AS pack_type_id,
@@ -1985,8 +1969,7 @@ export const getJobsByProduction = async (req, res) => {
       LEFT JOIN flavours f 
         ON j.flavour_id = f.id
 
-      LEFT JOIN pack_codes pc 
-        ON j.pack_code_id = pc.id
+ 
 
       LEFT JOIN pack_types pt 
         ON j.pack_type_id = pt.id
@@ -2067,9 +2050,7 @@ export const getJobsByProduction = async (req, res) => {
           ? { id: row.flavour_id, name: row.flavour_name }
           : null,
 
-        pack_code: row.pack_code_id
-          ? { id: row.pack_code_id, name: row.pack_code_name }
-          : null,
+       
 
         pack_type: row.pack_type_id
           ? { id: row.pack_type_id, name: row.pack_type_name }
@@ -2105,6 +2086,7 @@ export const getInProgressJobsByProduction = async (req, res) => {
         j.job_status AS status,
         j.priority,
         j.pack_size,
+        j.pack_code,
 
         -- project
         p.project_name,
@@ -2117,7 +2099,6 @@ export const getInProgressJobsByProduction = async (req, res) => {
 
         -- pack
         pt.name AS pack_type,
-        pc.name AS pack_code,
 
         -- assign job
         aj.time_budget AS total_time,
@@ -2148,8 +2129,7 @@ export const getInProgressJobsByProduction = async (req, res) => {
       LEFT JOIN pack_types pt
         ON j.pack_type_id = pt.id
 
-      LEFT JOIN pack_codes pc
-        ON j.pack_code_id = pc.id
+ 
 
       LEFT JOIN users u
         ON aj.employee_id = u.id   -- ✅ corrected join
@@ -2191,6 +2171,7 @@ export const getAllInProgressJobsProduction = async (req, res) => {
         j.job_status AS status,
         j.priority,
         j.pack_size,
+        j.pack_code,
 
         -- project
         p.project_name,
@@ -2203,7 +2184,7 @@ export const getAllInProgressJobsProduction = async (req, res) => {
 
         -- pack
         pt.name AS pack_type,
-        pc.name AS pack_code,
+      
 
         -- assign job
         aj.time_budget AS total_time,
@@ -2231,8 +2212,7 @@ export const getAllInProgressJobsProduction = async (req, res) => {
       LEFT JOIN pack_types pt
         ON j.pack_type_id = pt.id
 
-      LEFT JOIN pack_codes pc
-        ON j.pack_code_id = pc.id
+   
 
       LEFT JOIN users u
         ON j.assigned = u.id
@@ -2270,6 +2250,7 @@ export const getCompleteJobsByProduction = async (req, res) => {
         aj.id AS assign_job_id,
         j.id AS job_id,
         j.job_no,
+        j.pack_code,
         j.job_status AS job_status,
         aj.employee_status,
         j.priority,
@@ -2286,24 +2267,24 @@ export const getCompleteJobsByProduction = async (req, res) => {
 
         -- pack
         pt.name AS pack_type,
-        pc.name AS pack_code,
+     
 
         -- assign job
         aj.time_budget AS total_time,
 
         -- production user
         CONCAT(u.first_name, ' ', u.last_name) AS assigned_to
-
+cx
       FROM assign_jobs aj
       JOIN jobs j
         ON JSON_CONTAINS(aj.job_ids, JSON_ARRAY(j.id))
       JOIN projects p
-        ON j.project_id = p.id
+        ON j.project_id = p.id    
       LEFT JOIN brand_names b ON j.brand_id = b.id
       LEFT JOIN sub_brands sb ON j.sub_brand_id = sb.id
       LEFT JOIN flavours f ON j.flavour_id = f.id
       LEFT JOIN pack_types pt ON j.pack_type_id = pt.id
-      LEFT JOIN pack_codes pc ON j.pack_code_id = pc.id
+  
       LEFT JOIN users u ON aj.employee_id = u.id
 
       WHERE 
@@ -2338,10 +2319,12 @@ export const getAllCompleteJobsProduction = async (req, res) => {
         aj.id AS assign_job_id,
         j.id AS job_id,
         j.job_no,
+        j.pack_code,
         j.job_status AS job_status,
         aj.employee_status,
         j.priority,
         j.pack_size,
+ 
 
         -- project
         p.project_name,
@@ -2354,7 +2337,7 @@ export const getAllCompleteJobsProduction = async (req, res) => {
 
         -- pack
         pt.name AS pack_type,
-        pc.name AS pack_code,
+      
 
         -- assign job
         aj.time_budget AS total_time,
@@ -2371,7 +2354,7 @@ export const getAllCompleteJobsProduction = async (req, res) => {
       LEFT JOIN sub_brands sb ON j.sub_brand_id = sb.id
       LEFT JOIN flavours f ON j.flavour_id = f.id
       LEFT JOIN pack_types pt ON j.pack_type_id = pt.id
-      LEFT JOIN pack_codes pc ON j.pack_code_id = pc.id
+     
       LEFT JOIN users u ON aj.employee_id = u.id
 
       WHERE 
@@ -2410,6 +2393,7 @@ export const getRejectJobsByProduction = async (req, res) => {
         j.job_status AS status,
         j.priority,
         j.pack_size,
+        j.pack_code,
 
         -- project
         p.project_name,
@@ -2422,7 +2406,7 @@ export const getRejectJobsByProduction = async (req, res) => {
 
         -- pack
         pt.name AS pack_type,
-        pc.name AS pack_code,
+        
 
         -- assign job
         aj.time_budget AS total_time,
@@ -2450,8 +2434,7 @@ export const getRejectJobsByProduction = async (req, res) => {
       LEFT JOIN pack_types pt
         ON j.pack_type_id = pt.id
 
-      LEFT JOIN pack_codes pc
-        ON j.pack_code_id = pc.id
+      
 
       LEFT JOIN users u
         ON aj.employee_id = u.id
@@ -2493,6 +2476,7 @@ export const getAllRejectJobsProduction = async (req, res) => {
         j.job_status AS status,
         j.priority,
         j.pack_size,
+        j.pack_code,
 
         -- project
         p.project_name,
@@ -2505,7 +2489,7 @@ export const getAllRejectJobsProduction = async (req, res) => {
 
         -- pack
         pt.name AS pack_type,
-        pc.name AS pack_code,
+   
 
         -- assign job
         aj.time_budget AS total_time,
@@ -2533,8 +2517,7 @@ export const getAllRejectJobsProduction = async (req, res) => {
       LEFT JOIN pack_types pt
         ON j.pack_type_id = pt.id
 
-      LEFT JOIN pack_codes pc
-        ON j.pack_code_id = pc.id
+
 
       LEFT JOIN users u
         ON aj.employee_id = u.id

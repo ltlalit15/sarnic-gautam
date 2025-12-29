@@ -9,7 +9,7 @@ export const createJob = async (req, res) => {
       sub_brand_id,
       flavour_id,
       pack_type_id,
-      pack_code_id,
+      pack_code,
       pack_size,
       priority,
       ean_barcode,
@@ -48,7 +48,7 @@ export const createJob = async (req, res) => {
         sub_brand_id,
         flavour_id,
         pack_type_id,
-        pack_code_id,
+        pack_code,
         pack_size,
         priority,
         ean_barcode,
@@ -62,7 +62,7 @@ export const createJob = async (req, res) => {
         sub_brand_id || null,
         flavour_id || null,
         pack_type_id || null,
-        pack_code_id || null,
+        pack_code || null,
         pack_size || null,
         priority ? priority.toLowerCase() : "medium",
         ean_barcode || null,
@@ -125,7 +125,6 @@ export const getAllJobs = async (req, res) => {
         sb.name AS sub_brand_name,
         f.name AS flavour_name,
         pt.name AS pack_type_name,
-        pc.name AS pack_code_name,
 
         -- total time per job (HH:MM, supports >24h)
         CONCAT(
@@ -154,7 +153,6 @@ export const getAllJobs = async (req, res) => {
       LEFT JOIN sub_brands sb ON j.sub_brand_id = sb.id
       LEFT JOIN flavours f ON j.flavour_id = f.id
       LEFT JOIN pack_types pt ON j.pack_type_id = pt.id
-      LEFT JOIN pack_codes pc ON j.pack_code_id = pc.id
       LEFT JOIN time_work_logs twl ON twl.job_id = j.id
 
       GROUP BY j.id
@@ -177,19 +175,19 @@ export const getJobById = async (req, res) => {
       SELECT
         j.*,
         p.project_no,
+        j.pack_code                             AS packCode,
         p.project_name AS main_project_name,
         b.name AS brand_name,
         sb.name AS sub_brand_name,
         f.name AS flavour_name,
-        pt.name AS pack_type_name,
-        pc.name AS pack_code_name
+        pt.name AS pack_type_name
       FROM jobs j
       LEFT JOIN projects p ON j.project_id = p.id
       LEFT JOIN brand_names b ON j.brand_id = b.id
       LEFT JOIN sub_brands sb ON j.sub_brand_id = sb.id
       LEFT JOIN flavours f ON j.flavour_id = f.id
       LEFT JOIN pack_types pt ON j.pack_type_id = pt.id
-      LEFT JOIN pack_codes pc ON j.pack_code_id = pc.id
+
       WHERE j.id = ?
     `,
       [id]
@@ -417,7 +415,6 @@ export const getJobsByProjectId = async (req, res) => {
         sb.name AS sub_brand_name,
         f.name AS flavour_name,
         pt.name AS pack_type_name,
-        pc.name AS pack_code_name,
 
         MAX(aj.id) AS assign_id,
         MAX(aj.production_status) AS production_status,
@@ -460,7 +457,7 @@ export const getJobsByProjectId = async (req, res) => {
       LEFT JOIN sub_brands sb ON j.sub_brand_id = sb.id
       LEFT JOIN flavours f ON j.flavour_id = f.id
       LEFT JOIN pack_types pt ON j.pack_type_id = pt.id
-      LEFT JOIN pack_codes pc ON j.pack_code_id = pc.id
+
 
       LEFT JOIN assign_jobs aj
         ON aj.id = (
@@ -500,7 +497,7 @@ export const updateJob = async (req, res) => {
       sub_brand_id,
       flavour_id,
       pack_type_id,
-      pack_code_id,
+      pack_code,
       pack_size,
       priority,
       ean_barcode,
@@ -513,7 +510,7 @@ export const updateJob = async (req, res) => {
         sub_brand_id = ?,
         flavour_id = ?,
         pack_type_id = ?,
-        pack_code_id = ?,
+        pack_code = ?,
         pack_size = ?,
         priority = ?,
         ean_barcode = ?,
@@ -524,7 +521,7 @@ export const updateJob = async (req, res) => {
         sub_brand_id || null,
         flavour_id || null,
         pack_type_id || null,
-        pack_code_id || null,
+        pack_code || null,
         pack_size || null,
         priority ? priority.toLowerCase() : "medium",
         ean_barcode || null,
@@ -539,17 +536,7 @@ export const updateJob = async (req, res) => {
   }
 };
 
-// export const deleteJob = async (req, res) => {
-//   try {
-//     const { id } = req.params;
 
-//     await pool.query("DELETE FROM jobs WHERE id = ?", [id]);
-
-//     res.json({ success: true, message: "Job deleted successfully" });
-//   } catch (error) {
-//     res.status(500).json({ message: error.message });
-//   }
-// };
 export const deleteJob = async (req, res) => {
   const connection = await pool.getConnection();
 
@@ -624,64 +611,6 @@ export const deleteJob = async (req, res) => {
   }
 };
 
-// export const getJobHistoryByProductionId = async (req, res) => {
-//   try {
-//     const { productionId } = req.params;
-
-//     const [rows] = await pool.query(
-//       `
-//       SELECT
-//         aj.id AS assign_job_id,
-//         aj.project_id,
-//         aj.job_ids,
-//         aj.production_id,
-//         aj.employee_id,
-//         aj.task_description,
-//         aj.time_budget,
-//         aj.admin_status,
-//         aj.production_status,
-//         aj.employee_status,
-//         aj.created_at,
-
-//         j.job_no,
-//         j.job_status,
-//         j.priority,
-
-//         p.project_name,
-
-//         u.first_name AS employee_first_name,
-//         u.last_name AS employee_last_name
-
-//       FROM assign_jobs aj
-//       LEFT JOIN jobs j
-//         ON FIND_IN_SET(j.id, REPLACE(REPLACE(aj.job_ids, '[', ''), ']', ''))
-
-//       LEFT JOIN projects p
-//         ON p.id = aj.project_id
-
-//       LEFT JOIN users u
-//         ON u.id = aj.employee_id
-
-//       WHERE aj.production_id = ?
-//       ORDER BY aj.created_at DESC
-//       `,
-//       [productionId]
-//     );
-
-//     res.json({
-//       success: true,
-//       count: rows.length,
-//       data: rows
-//     });
-
-//   } catch (error) {
-//     console.error(error);
-//     res.status(500).json({
-//       success: false,
-//       message: "Failed to fetch production job history"
-//     });
-//   }
-// };
 
 export const getJobHistoryByProductionId = async (req, res) => {
   try {
@@ -690,6 +619,8 @@ export const getJobHistoryByProductionId = async (req, res) => {
     const [rows] = await pool.query(
       `
       SELECT
+      j.id                                     AS jobId,
+      j.pack_code                             AS packCode,
         j.job_no                                AS jobNo,
         p.project_name                         AS projectName,
 
@@ -698,7 +629,7 @@ export const getJobHistoryByProductionId = async (req, res) => {
         f.name                                 AS flavour,
         pt.name                                AS packType,
         j.pack_size                            AS packSize,
-        pc.name                                AS packCode,
+
 
         j.priority                             AS priority,
         p.expected_completion_date             AS dueDate,
@@ -722,7 +653,7 @@ export const getJobHistoryByProductionId = async (req, res) => {
       LEFT JOIN sub_brands sb    ON sb.id = j.sub_brand_id
       LEFT JOIN flavours f       ON f.id = j.flavour_id
       LEFT JOIN pack_types pt    ON pt.id = j.pack_type_id
-      LEFT JOIN pack_codes pc    ON pc.id = j.pack_code_id
+  
 
       -- 🔥 BOTH JOINS
       LEFT JOIN users emp  ON emp.id  = aj.employee_id
@@ -753,13 +684,14 @@ export const getJobHistoryByEmployeeId = async (req, res) => {
         j.id,
         j.job_no                                AS jobNo,
         p.project_name                         AS projectName,
+         j.pack_code                             AS packCode,
 
         b.name                                 AS brand,
         sb.name                                AS subBrand,
         f.name                                 AS flavour,
         pt.name                                AS packType,
         j.pack_size                            AS packSize,
-        pc.name                                AS packCode,
+       
 
         j.priority                             AS priority,
         p.expected_completion_date             AS dueDate,
@@ -778,7 +710,7 @@ export const getJobHistoryByEmployeeId = async (req, res) => {
       LEFT JOIN sub_brands sb    ON sb.id = j.sub_brand_id
       LEFT JOIN flavours f       ON f.id = j.flavour_id
       LEFT JOIN pack_types pt    ON pt.id = j.pack_type_id
-      LEFT JOIN pack_codes pc    ON pc.id = j.pack_code_id
+
       LEFT JOIN users pu         ON pu.id = aj.production_id
 
       WHERE aj.employee_id = ?
