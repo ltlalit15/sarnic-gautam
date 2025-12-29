@@ -2039,6 +2039,7 @@ export const getJobsByProduction = async (req, res) => {
         priority: row.job_priority,
         pack_size: row.pack_size,
         ean_barcode: row.ean_barcode,
+        pack_code: row.pack_code,
 
         brand: row.brand_id ? { id: row.brand_id, name: row.brand_name } : null,
 
