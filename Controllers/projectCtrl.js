@@ -421,6 +421,7 @@ export const getProjectOverviewById = async (req, res) => {
   WHERE purchase_order_id IN (
     SELECT id FROM purchase_orders WHERE project_id = ?
   )
+  GROUP BY currency
   `,
       [projectId]
     );
