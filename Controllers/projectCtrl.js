@@ -417,9 +417,10 @@ export const getProjectOverviewById = async (req, res) => {
     COUNT(*) AS issued,
     SUM(CASE WHEN invoice_status IN ('completed', 'received') THEN 1 ELSE 0 END) AS received,
     IFNULL(SUM(CASE WHEN invoice_status IN ('completed', 'received') THEN total_amount ELSE 0 END), 0) AS total_value
-FROM invoices
-WHERE project_id = ?
-GROUP BY currency
+  FROM invoices
+  WHERE purchase_order_id IN (
+    SELECT id FROM purchase_orders WHERE project_id = ?
+  )
   `,
       [projectId]
     );
@@ -434,10 +435,11 @@ GROUP BY currency
     if (invoiceStats.length > 0) {
       const inv = invoiceStats[0];
       purchase_orders = {
-        received: inv.received || 0,
-        issued: inv.issued || 0,
-        total_value: Number(inv.total_value || 0).toFixed(2),
-        currency: inv.currency || "USD",
+        total_pos: poStats.total_pos || 0,
+        received: Number(inv.received) || 0,
+        issued: Number(inv.issued) || 0,
+        total_value: Number(poStats.total_value || 0).toFixed(2),
+        currency: project.currency || "USD",
       };
     }
 

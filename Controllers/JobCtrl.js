@@ -750,6 +750,7 @@ export const getJobHistoryByEmployeeId = async (req, res) => {
     const [rows] = await pool.query(
       `
       SELECT
+        j.id,
         j.job_no                                AS jobNo,
         p.project_name                         AS projectName,
 
