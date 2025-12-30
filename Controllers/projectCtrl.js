@@ -391,8 +391,7 @@ export const getProjectOverviewById = async (req, res) => {
     }
     const recentActivity = [...recentJobs, ...recentPOs]
       .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-      .slice(0, 3)
-      .map((a) => a.activity);
+      .slice(0, 3);
 
     /* ---------------- Final Response ---------------- */
     res.json({
