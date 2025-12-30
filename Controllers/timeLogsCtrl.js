@@ -1,6 +1,5 @@
 import { pool } from "../Config/dbConnect.js";
 
-
 export const createTimeLogs = async (req, res) => {
   try {
     const {
@@ -10,7 +9,7 @@ export const createTimeLogs = async (req, res) => {
       job_id,
       project_id,
       time,
-      overtime
+      overtime,
     } = req.body;
 
     /* -------------------------------------------
@@ -61,7 +60,7 @@ export const createTimeLogs = async (req, res) => {
         time || null,
         overtime || null,
         assignment?.task_description || null, // 🔒 snapshot
-        assignment?.time_budget || null       // 🔒 snapshot
+        assignment?.time_budget || null, // 🔒 snapshot
       ]
     );
 
@@ -73,18 +72,16 @@ export const createTimeLogs = async (req, res) => {
     res.status(201).json({
       success: true,
       message: "Time log created (task snapshot saved)",
-      data: rows[0]
+      data: rows[0],
     });
-
   } catch (error) {
     console.error("Create time log error:", error);
     res.status(500).json({
       success: false,
-      message: error.message
+      message: error.message,
     });
   }
 };
-
 
 export const getAllTimeLogs = async (req, res) => {
   try {
@@ -111,7 +108,7 @@ export const getAllTimeLogs = async (req, res) => {
     // 🔥 RESPONSE TRANSFORMATION LOGIC
     const formattedData = [];
 
-    rows.forEach(row => {
+    rows.forEach((row) => {
       const base = {
         id: row.id,
         date: row.date,
@@ -127,14 +124,14 @@ export const getAllTimeLogs = async (req, res) => {
         JobID: row.JobID,
         project_name: row.project_name,
         assign_status: row.assign_status,
-        total_time: row.total_time
+        total_time: row.total_time,
       };
 
       // ✅ If employee exists → create object
       if (row.employee_id && row.employee_name) {
         formattedData.push({
           ...base,
-          employee_name: row.employee_name
+          employee_name: row.employee_name,
         });
       }
 
@@ -142,13 +139,12 @@ export const getAllTimeLogs = async (req, res) => {
       if (row.production_id && row.production_name) {
         formattedData.push({
           ...base,
-          employee_name: row.production_name
+          employee_name: row.production_name,
         });
       }
     });
 
     res.json({ success: true, data: formattedData });
-
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -195,12 +191,11 @@ export const getByIdTimeLogs = async (req, res) => {
     if (!rows.length) {
       return res.status(404).json({
         success: false,
-        message: "Record not found"
+        message: "Record not found",
       });
     }
 
     res.json({ success: true, data: rows[0] });
-
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -219,7 +214,7 @@ export const updateTimeLogs = async (req, res) => {
     if (!existing.length) {
       return res.status(404).json({
         success: false,
-        message: "Record not found"
+        message: "Record not found",
       });
     }
 
@@ -231,7 +226,7 @@ export const updateTimeLogs = async (req, res) => {
       job_id,
       project_id,
       time,
-      overtime
+      overtime,
     } = req.body;
 
     await pool.query(
@@ -255,12 +250,11 @@ export const updateTimeLogs = async (req, res) => {
         project_id ?? old.project_id,
         time ?? old.time,
         overtime ?? old.overtime,
-        id
+        id,
       ]
     );
 
     res.json({ success: true, message: "Time log updated" });
-
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -268,18 +262,15 @@ export const updateTimeLogs = async (req, res) => {
 // ================= DELETE =================
 export const removeTimeLogs = async (req, res) => {
   try {
-    await pool.query(
-      `DELETE FROM time_work_logs WHERE id = ?`,
-      [req.params.id]
-    );
+    await pool.query(`DELETE FROM time_work_logs WHERE id = ?`, [
+      req.params.id,
+    ]);
 
     res.json({ success: true, message: "Time log deleted" });
-
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
-
 
 export const getTimeLogsByProduction = async (req, res) => {
   try {
@@ -336,7 +327,6 @@ export const getTimeLogsByProduction = async (req, res) => {
     );
 
     res.json({ success: true, data: rows });
-
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -397,14 +387,12 @@ export const getTimeLogsByEmployee = async (req, res) => {
     );
 
     res.json({ success: true, data: rows });
-
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
 export const getTimeLogsAllEmployee = async (req, res) => {
   try {
-
     const [rows] = await pool.query(`
       SELECT 
         twl.*,
@@ -456,17 +444,15 @@ export const getTimeLogsAllEmployee = async (req, res) => {
 
     res.json({
       success: true,
-      data: rows
+      data: rows,
     });
-
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: error.message
+      message: error.message,
     });
   }
 };
-
 
 export const getAllTimeLogsEmployeeWithTask = async (req, res) => {
   try {
@@ -476,7 +462,7 @@ export const getAllTimeLogsEmployeeWithTask = async (req, res) => {
     if (!jobId) {
       return res.status(400).json({
         success: false,
-        message: "job_id is required"
+        message: "job_id is required",
       });
     }
 
@@ -516,6 +502,8 @@ export const getAllTimeLogsEmployeeWithTask = async (req, res) => {
           aj.task_description
         ) AS task_description,
 
+        aj.created_at AS task_created_at,
+        
         COALESCE(
           twl.time_budget_snapshot,
           aj.time_budget
@@ -560,18 +548,127 @@ export const getAllTimeLogsEmployeeWithTask = async (req, res) => {
       params
     );
 
+    if (rows.length === 0 && employeeId) {
+      /* ---------- PRODUCTION ---------- */
+      if (userRole === "production") {
+        const [[production]] = await pool.query(
+          `
+          SELECT 
+            u.id AS production_id,
+            CONCAT(u.first_name, ' ', u.last_name) AS production_name,
+            aj.time_budget,
+            aj.task_description,
+            aj.created_at
+          FROM users u
+          LEFT JOIN assign_jobs aj
+            ON aj.production_id = u.id
+            AND FIND_IN_SET(
+              ?, REPLACE(REPLACE(aj.job_ids,'[',''),']','')
+            )
+          WHERE u.id = ?
+          ORDER BY aj.created_at DESC
+          LIMIT 1
+          `,
+          [jobId, employeeId]
+        );
+
+        return res.json({
+          success: true,
+          production: {
+            production_id: production?.production_id || employeeId,
+            production_name: production?.production_name || null,
+            time_budget: production?.time_budget || "00:00:00",
+            task_description: production?.task_description || null,
+            created_at: production?.created_at || null,
+          },
+          logs: [],
+        });
+      }
+
+      /* ---------- EMPLOYEE ---------- */
+      if (userRole === "employee") {
+        const [[employee]] = await pool.query(
+          `
+          SELECT 
+            u.id AS employee_id,
+            CONCAT(u.first_name, ' ', u.last_name) AS employee_name,
+            aj.time_budget,
+            aj.task_description,
+            aj.created_at
+          FROM users u
+          LEFT JOIN assign_jobs aj
+            ON aj.employee_id = u.id
+            AND FIND_IN_SET(
+              ?, REPLACE(REPLACE(aj.job_ids,'[',''),']','')
+            )
+          WHERE u.id = ?
+          ORDER BY aj.created_at DESC
+          LIMIT 1
+          `,
+          [jobId, employeeId]
+        );
+
+        return res.json({
+          success: true,
+          employee: {
+            employee_id: employee?.employee_id || employeeId,
+            employee_name: employee?.employee_name || null,
+            time_budget: employee?.time_budget || "00:00:00",
+            task_description: employee?.task_description || null,
+            created_at: employee?.created_at || null,
+          },
+          logs: [],
+        });
+      }
+    }
+
+    if ((!employeeId || userRole === "admin") && rows.length === 0) {
+      const [assignments] = await pool.query(
+        `
+        SELECT 
+          aj.production_id,
+          CONCAT(u.first_name, ' ', u.last_name) AS production_name,
+          aj.time_budget,
+          aj.task_description,
+          aj.created_at
+        FROM assign_jobs aj
+        LEFT JOIN users u ON u.id = aj.production_id
+        WHERE FIND_IN_SET(
+          ?, REPLACE(REPLACE(aj.job_ids,'[',''),']','')
+        )
+        ORDER BY aj.created_at DESC
+        `,
+        [jobId]
+      );
+
+      return res.json({
+        success: true,
+        job_id: jobId,
+        productions: assignments.map((a) => ({
+          production_id: a.production_id,
+          production_name: a.production_name,
+          time_budget: a.time_budget || "00:00:00",
+          task_description: a.task_description || null,
+          created_at: a.created_at || null,
+          logs: [],
+        })),
+      });
+    }
+
     // ADMIN
     if (!employeeId || userRole === "admin") {
       const productionsMap = {};
 
-      rows.forEach(row => {
+      rows.forEach((row) => {
         const prodId = row.production_id || "unassigned";
         if (!productionsMap[prodId]) {
           productionsMap[prodId] = {
             production_id: row.production_id,
             production_name: row.production_name,
             time_budget: row.time_budget || "00:00:00",
-            logs: []
+            task_description: row.task_description || null,
+            task_created_at: row.task_created_at || null,
+            logs: [],
           };
         }
         productionsMap[prodId].logs.push(row);
@@ -581,7 +678,7 @@ export const getAllTimeLogsEmployeeWithTask = async (req, res) => {
         success: true,
         job_id: jobId,
         job_no: rows[0]?.JobID || null,
-        productions: Object.values(productionsMap)
+        productions: Object.values(productionsMap),
       });
     }
 
@@ -591,9 +688,11 @@ export const getAllTimeLogsEmployeeWithTask = async (req, res) => {
         production: {
           production_id: employeeId,
           production_name: rows[0]?.production_name || null,
-          time_budget: rows[0]?.time_budget || "00:00:00"
+          time_budget: rows[0]?.time_budget || "00:00:00",
+          task_description: rows[0]?.task_description || null,
+          task_created_at: rows[0]?.task_created_at || null,
         },
-        logs: rows
+        logs: rows,
       });
     }
 
@@ -603,19 +702,20 @@ export const getAllTimeLogsEmployeeWithTask = async (req, res) => {
         employee: {
           employee_id: employeeId,
           employee_name: rows[0]?.employee_name || null,
-          time_budget: rows[0]?.time_budget || "00:00:00"
+          time_budget: rows[0]?.time_budget || "00:00:00",
+          task_description: rows[0]?.task_description || null,
+          task_created_at: rows[0]?.task_created_at || null,
         },
-        logs: rows
+        logs: rows,
       });
     }
 
     return res.json({ success: true, data: rows });
-
   } catch (error) {
     console.error("Time log error:", error);
     res.status(500).json({
       success: false,
-      message: error.message
+      message: error.message,
     });
   }
 };
