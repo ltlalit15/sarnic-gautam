@@ -779,6 +779,7 @@ export const getJobsByEmployee = async (req, res) => {
                 employee_status: row.employee_status,
                 created_at: row.created_at,
                 updated_at: row.updated_at,
+                pack_code: row.pack_code,
               }
             : null,
 
@@ -1584,7 +1585,7 @@ export const getCompleteJobsByProduction = async (req, res) => {
 
         -- production user
         CONCAT(u.first_name, ' ', u.last_name) AS assigned_to
-cx
+
       FROM assign_jobs aj
       JOIN jobs j
         ON JSON_CONTAINS(aj.job_ids, JSON_ARRAY(j.id))
@@ -1594,7 +1595,6 @@ cx
       LEFT JOIN sub_brands sb ON j.sub_brand_id = sb.id
       LEFT JOIN flavours f ON j.flavour_id = f.id
       LEFT JOIN pack_types pt ON j.pack_type_id = pt.id
-  
       LEFT JOIN users u ON aj.employee_id = u.id
 
       WHERE 
