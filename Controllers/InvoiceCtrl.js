@@ -231,11 +231,14 @@ export const getAllInvoices = async (req, res) => {
         i.*,
         p.project_name,
         p.project_no,
-        cs.name AS client_name
+        cs.name AS client_name,
+        po.po_number
       FROM invoices i
       LEFT JOIN projects p ON p.id = i.project_id
       LEFT JOIN clients_suppliers cs 
         ON cs.id = i.client_id AND cs.type = 'client'
+           LEFT JOIN purchase_orders po
+        ON po.id = i.purchase_order_id
       ORDER BY i.id DESC
     `);
 
@@ -361,213 +364,7 @@ export const getInvoiceById = async (req, res) => {
 };
 
 
-// get invoice estimate pdf 
 
-
-// export const getInvoicepdfById = async (req, res) => {
-//   try {
-//     const { id } = req.params;
-
-//     const [[row]] = await pool.query(`
-//       SELECT 
-//         i.invoice_no,
-//         i.invoice_date,
-//         i.estimate_id,
-//         i.purchase_order_id,
-//         i.line_items,
-//         i.subtotal,
-//         i.vat_rate,
-//         i.vat_amount,
-//         i.total_amount,
-
-//         p.project_no,
-
-//         -- client details (sirf jo photo me hai)
-//         cs.name AS client_name,
-//         cs.address AS client_address,
-//         cs.phone AS client_phone,
-
-//         -- company bank details (sirf jo photo me hai)
-//         ci.bank_account_name,
-//         ci.bank_name,
-//         ci.iban,
-//         ci.swift_code
-
-//       FROM invoices i
-
-//       LEFT JOIN projects p 
-//         ON p.id = i.project_id
-
-//       LEFT JOIN clients_suppliers cs 
-//         ON cs.id = i.client_id 
-//         AND cs.type = 'client'
-
-//       LEFT JOIN company_information ci 
-//         ON 1 = 1   -- single company row
-
-//       WHERE i.id = ?
-//     `, [id]);
-
-//     if (!row) {
-//       return res.status(404).json({ success: false, message: "Invoice not found" });
-//     }
-
-//     const items = row.line_items ? JSON.parse(row.line_items) : [];
-
-//     res.json({
-//       success: true,
-//       data: {
-//         invoice_no: row.invoice_no,
-//         invoice_date: row.invoice_date,
-
-//         ce_no: row.estimate_id,
-//         po_no: row.purchase_order_id,
-//         project_no: row.project_no,
-
-//         client: {
-//           name: row.client_name,
-//           address: row.client_address,
-//           phone: row.client_phone
-//         },
-
-//         bank: {
-//           account_name: row.bank_account_name,
-//           bank_name: row.bank_name,
-//           iban: row.iban,
-//           swift_code: row.swift_code
-//         },
-
-//         items,
-
-//         summary: {
-//           subtotal: row.subtotal,
-//           vat_rate: row.vat_rate,
-//           vat_amount: row.vat_amount,
-//           total: row.total_amount
-//         }
-//       }
-//     });
-
-//   } catch (error) {
-//     res.status(500).json({ success: false, message: error.message });
-//   }
-// };
-
-
-// export const getInvoicepdfById = async (req, res) => {
-//   try {
-//     const { id } = req.params;
-
-//     const [[row]] = await pool.query(`
-//       SELECT 
-//         i.invoice_no,
-//         i.invoice_date,
-//         i.currency,
-//         i.estimate_id,
-//         i.purchase_order_id,
-//         i.line_items,
-//         i.subtotal,
-//         i.vat_rate,
-//         i.vat_amount,
-//         i.total_amount,
-
-//         p.project_no,
-
-//         cs.name AS client_name,
-//         cs.address AS client_address,
-//         cs.phone AS client_phone,
-
-//         -- ✅ COMPANY INFO
-//         ci.company_name,
-//         ci.company_stamp,
-//         ci.address AS company_address,
-//         ci.phone AS company_phone,
-//         ci.email AS company_email,
-//         ci.trn AS company_trn,
-//         ci.company_logo,
-
-//         -- ✅ BANK INFO
-//         ci.bank_account_name,
-//         ci.bank_name,
-//         ci.iban,
-//         ci.swift_code,
-         
-//         es.estimate_no AS ce_no,
-
-//       FROM invoices i
-
-//       LEFT JOIN projects p 
-//         ON p.id = i.project_id
-
-//       LEFT JOIN clients_suppliers cs 
-//         ON cs.id = i.client_id 
-//         AND cs.type = 'client'
-
-//       LEFT JOIN company_information ci 
-//         ON 1 = 1
-     
-//         LEFT JOIN estimates es
-//         ON es.id = i.estimate_id
-//       WHERE i.id = ?
-//     `, [id]);
-
-//     if (!row) {
-//       return res.status(404).json({ success: false, message: "Invoice not found" });
-//     }
-
-//     const items = row.line_items ? JSON.parse(row.line_items) : [];
-
-//     res.json({
-//       success: true,
-//       data: {
-//         invoice_no: row.invoice_no,
-//         invoice_date: row.invoice_date,
-
-//         ce_no: row.ce_no,
-//         po_no: row.purchase_order_id,
-//         project_no: row.project_no,
-
-//         currency: row.currency,
-
-//         company: {
-//           name: row.company_name,
-//           stamp: row.company_stamp,
-//           address: row.company_address,
-//           phone: row.company_phone,
-//           email: row.company_email,
-//           trn: row.company_trn,
-//           logo: row.company_logo
-//         },
-
-//         client: {
-//           name: row.client_name,
-//           address: row.client_address,
-//           phone: row.client_phone
-//         },
-
-//         bank: {
-//           account_name: row.bank_account_name,
-//           bank_name: row.bank_name,
-//           iban: row.iban,
-//           swift_code: row.swift_code
-//         },
-
-//         items,
-
-//         summary: {
-//           subtotal: row.subtotal,
-//           vat_rate: row.vat_rate,
-//           vat_amount: row.vat_amount,
-//           total: row.total_amount,
-//           currency: row.currency
-//         }
-//       }
-//     });
-
-//   } catch (error) {
-//     res.status(500).json({ success: false, message: error.message });
-//   }
-// };
 export const getInvoicepdfById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -590,6 +387,7 @@ export const getInvoicepdfById = async (req, res) => {
         cs.name AS client_name,
         cs.address AS client_address,
         cs.phone AS client_phone,
+        cs.tax_id AS tax_id,
 
         -- ✅ COMPANY INFO
         ci.company_name,
@@ -656,7 +454,8 @@ export const getInvoicepdfById = async (req, res) => {
         client: {
           name: row.client_name,
           address: row.client_address,
-          phone: row.client_phone
+          phone: row.client_phone,
+          tax_id: row.tax_id
         },
 
         bank: {
