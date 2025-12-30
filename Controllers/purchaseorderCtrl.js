@@ -95,6 +95,7 @@ export const getAllPurchaseOrders = async (req, res) => {
         p.project_no,
         cs.name AS client_name,
         e.id AS estimate_id,
+        e.currency AS currency,
         e.estimate_no,
         e.ce_po_status,
         e.ce_invoice_status
