@@ -32,7 +32,7 @@ export const pool = mysql.createPool({
 //   port: 3306, // ✅ Match CLI port
 //   user: "root", // ✅ Match CLI user
 //   password: "", // ✅ Match CLI password
-//   database: "sarnic_new", // ✅ Match CLI DB name
+//   database: "clone_sarnic", // ✅ Match CLI DB name
 //   waitForConnections: true,
 //   connectionLimit: 10,
 //   queueLimit: 0,
