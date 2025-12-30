@@ -150,6 +150,55 @@ export const createEstimate = async (req, res) => {
 };
 
 
+// export const getEstimatesByProjectId = async (req, res) => {
+//   try {
+//     const { projectId } = req.params;
+
+//     const [rows] = await pool.query(`
+//       SELECT 
+//         e.*,
+//         p.project_name,
+//         p.project_no,
+//         cs.name AS client_name
+//       FROM estimates e
+//       LEFT JOIN projects p ON p.id = e.project_id
+//       LEFT JOIN clients_suppliers cs 
+//         ON cs.id = e.client_id AND cs.type = 'client'
+//       WHERE e.project_id = ?
+//       ORDER BY e.id DESC
+//     `, [projectId]);
+
+//     const data = rows.map(row => {
+//       const flags = calculateInvoiceFlags(
+//         row.ce_po_status,
+//         row.ce_invoice_status
+//       );
+
+//       // 🔥 SAME STATUS LOGIC
+//       const computedStatus =
+//         row.ce_invoice_status === "received"
+//           ? "Inactive"
+//           : "Draft";
+
+//       return {
+//         ...row,
+//         ce_status: computedStatus,
+//         ...flags,
+//         line_items: row.line_items ? JSON.parse(row.line_items) : []
+//       };
+//     });
+
+//     res.json({
+//       success: true,
+//       count: data.length,
+//       data
+//     });
+
+//   } catch (error) {
+//     res.status(500).json({ message: error.message });
+//   }
+// };
+
 export const getEstimatesByProjectId = async (req, res) => {
   try {
     const { projectId } = req.params;
@@ -174,17 +223,12 @@ export const getEstimatesByProjectId = async (req, res) => {
         row.ce_invoice_status
       );
 
-      // 🔥 SAME STATUS LOGIC
-      const computedStatus =
-        row.ce_invoice_status === "received"
-          ? "Inactive"
-          : "Draft";
-
       return {
-        ...row,
-        ce_status: computedStatus,
+        ...row,               // ✅ ce_status DB se as-it-is
         ...flags,
-        line_items: row.line_items ? JSON.parse(row.line_items) : []
+        line_items: row.line_items
+          ? JSON.parse(row.line_items)
+          : []
       };
     });
 
@@ -198,6 +242,7 @@ export const getEstimatesByProjectId = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
 
 
 export const getAllEstimates = async (req, res) => {

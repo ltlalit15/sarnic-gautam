@@ -30,6 +30,7 @@ export const createPurchaseOrder = async (req, res) => {
       po_date,
       cost_estimation_id
     } = req.body;
+    console.log("po console",req.body);
 
     if (
       !po_number ||
